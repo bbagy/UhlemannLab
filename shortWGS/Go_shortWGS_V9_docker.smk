@@ -230,7 +230,7 @@ rule fastp_qc:
             exit 0
         fi
 
-        conda run -n shotgun fastp -i {input.r1} -I {input.r2} \
+        fastp -i {input.r1} -I {input.r2} \
               -o {output.r1_out} -O {output.r2_out} \
               -h {output.html} -j {output.json}
         touch {output.done}
@@ -272,7 +272,7 @@ rule args_srst2:
         set -euo pipefail
         mkdir -p "{OUTPUT_DIR}/3_ARGs_srst2_out"
 
-        conda run -n SRST2 srst2 --threads 6 --input_pe {input.r1} {input.r2} \
+        srst2 --threads 6 --input_pe {input.r1} {input.r2} \
             --forward .clean.R1 --reverse .clean.R2 \
             --output "{params.outprefix}" --log --gene_db "{input.gene_db}" || true
 
@@ -311,7 +311,7 @@ rule plas_srst2:
         set -euo pipefail
         mkdir -p "{OUTPUT_DIR}/4_Plasmid_srst2_out"
 
-        conda run -n SRST2 srst2 --threads 6 --input_pe {input.r1} {input.r2} \
+        srst2 --threads 6 --input_pe {input.r1} {input.r2} \
             --forward .clean.R1 --reverse .clean.R2 \
             --output "{params.outprefix}" --log --gene_db "{input.gene_db}" || true
 
@@ -348,7 +348,7 @@ rule kraken2_classify:
         if [ ! -s {input.r1} ] || [ ! -s {input.r2} ]; then
             : > {output.kreport}; : > {output.out}; touch {output.done}; exit 0
         fi
-        conda run -n shotgun kraken2 --db {params.db} --paired --gzip-compressed \
+        kraken2 --db {params.db} --paired --gzip-compressed \
                 --report {output.kreport} --output {output.out} \
                 {input.r1} {input.r2}
         touch {output.done}
@@ -449,7 +449,7 @@ rule mlst_srst2_per_sample:
             )
 
             cmd = (
-                "conda run -n SRST2 srst2 "
+                "srst2 "
                 f"--input_pe {input.r1} {input.r2} "
                 f"--mlst_db {db_fa} "
                 f"--mlst_definitions {prof_path} "
