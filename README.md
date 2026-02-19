@@ -13,6 +13,7 @@ Each pipeline is self-contained with its own `Dockerfile`, `Snakefile`, `run.sh`
 | **shortWGS** | Illumina WGS | Bacterial WGS pipeline for Illumina short reads | [Open](shortWGS/) |
 | **longWGS** | ONT WGS | Bacterial WGS pipeline for ONT long reads | [Open](longWGS/) |
 | **RNake** | RNA-seq | RNA-seq pipeline (experimental / under development) | [Open](RNake/) |
+| **TnSeq_ONT** | TnSeq_ONT | TnSeq_ONT pipeline (experimental / under development) | [Open](TnSeq_ONT/) |
 
 ---
 
