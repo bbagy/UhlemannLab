@@ -20,9 +20,6 @@ USER $MAMBA_USER
 
 # -----------------------------
 # Env 1: main pipeline (python 3.11)
-#   - snakemake 8.x needs python >=3.11
-#   - medaka works well here
-#   - autocycler + assemblers here
 # -----------------------------
 RUN micromamba create -y -n longwgs -c conda-forge -c bioconda \
       python=3.11 \
@@ -32,16 +29,12 @@ RUN micromamba create -y -n longwgs -c conda-forge -c bioconda \
       racon raven-assembler \
       porechop_abi nanofilt \
       medaka=2.1.1 \
-      bakta=1.12.0 \
-      flye \
-      miniasm \
-      plassembler \
-      autocycler \
+      flye miniasm plassembler autocycler \
+      bakta=1.12.0 blast=2.17.* \
     && micromamba clean -a -y
 
 # -----------------------------
 # Env 2: checkm2 (python 3.12)
-#   - checkm2 1.1.0 wants python 3.12+
 # -----------------------------
 RUN micromamba create -y -n checkm2_110 -c conda-forge -c bioconda \
       python=3.12 \
@@ -49,14 +42,21 @@ RUN micromamba create -y -n checkm2_110 -c conda-forge -c bioconda \
     && micromamba clean -a -y
 
 # -----------------------------
-# default shell
+# Env 3: QUAST (python 3.10)
+#   - quast cannot live with python 3.11
 # -----------------------------
+RUN micromamba create -y -n quast_env -c conda-forge -c bioconda \
+      python=3.10 \
+      quast=5.2.0 \
+      blast=2.15.* \
+    && micromamba clean -a -y
+
 SHELL ["/bin/bash", "-lc"]
 
-# default PATH = longwgs env
+# default PATH = longwgs
 ENV PATH=/opt/conda/envs/longwgs/bin:$PATH
 
-# DB hints (optional, harmless)
+# DB hints (optional)
 ENV BAKTA_DB=/db/bakta_DB
 ENV CHECKM2DB=/db/CheckM2_database/uniref100.KO.1.dmnd
 

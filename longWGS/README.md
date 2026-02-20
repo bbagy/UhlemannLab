@@ -1,23 +1,37 @@
-# longWGS — Bacterial WGS (ONT)
+# longWGS
+
+![ONT](https://img.shields.io/badge/Reads-ONT-2ca02c)
+![Workflow](https://img.shields.io/badge/Workflow-Snakemake-039be5)
+![Container](https://img.shields.io/badge/Runtime-Docker-0db7ed)
+
+Bacterial ONT WGS workflow for assembly, polishing, QC, depth analysis, and annotation.
 
 ---
 
-## Overview
+## Pipeline
 
-This Snakemake-based pipeline performs bacterial whole-genome assembly and annotation from Oxford Nanopore (ONT) reads.  
-It runs QC → assembly (autocycler) → polishing (medaka) → QC (QUAST/CheckM2) → coverage → annotation (Bakta), inside a Docker container.
+```mermaid
+flowchart LR
+  A[FASTQ] --> B[NanoFilt / optional porechop]
+  B --> C[Autocycler assembly]
+  C --> D[Medaka polish]
+  D --> E[QUAST + CheckM2]
+  E --> F[Coverage]
+  F --> G[Bakta annotation]
+```
 
 ---
 
 ## Requirements
 
-- Docker  
-- A Linux server
-- Long-read FASTQ files (`*.fastq.gz`)
+- Docker
+- Linux environment
+- ONT FASTQ files (`*.fastq.gz`)
+- DB root containing Bakta + CheckM2 DB
 
 ---
 
-## Build docker image
+## Build
 
 ```bash
 docker build -t longwgs:1.0 .
@@ -25,97 +39,61 @@ docker build -t longwgs:1.0 .
 
 ---
 
-## Run
+## Quick Start
 
 ```bash
-Go_longWGS.sh -i [input DIR] -o [output DIR] -d [DB location] -s [snakemake file location] -p 0
-
-Go_longWGS.sh -i 1_merged_fastqs -o 2_longWGS_out -d /media/uhlemann/Core3_V2/DB/longWGS_DB -s /home/uhlemann/heekuk_path -p 0
+Go_longWGS.sh \
+  -i /path/to/fastq \
+  -o longwgs_out \
+  -d /path/to/longWGS_DB \
+  -s /path/to/snakefile_dir \
+  -p 0
 ```
 
-### Options
+---
 
-- `-p 0` : skip porechop (recommended if your reads are already demultiplexed/trimmed)
-- `-p 1` : run porechop_abi before NanoFilt
+## Options
+
+| Flag | Default | Description |
+|---|---:|---|
+| `-i` | - | Input FASTQ directory |
+| `-o` | - | Output directory |
+| `-d` | - | DB root (`bakta_DB`, `CheckM2_database`) |
+| `-s` | - | Snakefile directory |
+| `-p` | `0` | `0`: skip porechop, `1`: run porechop_abi |
+| `-n` | off | Dry-run (`snakemake --dry-run`) |
 
 ---
 
 ## Inputs
 
-### 1) Input FASTQ directory (`-i`)
-
-A directory containing ONT reads as gzip-compressed FASTQ files:
-
-- `*.fastq.gz` or `*.fq.gz`
-- one file per sample (e.g., `barcode01.fastq.gz`)
-
-Example:
-
-```
-1_merged_fastqs/
-  barcode01.fastq.gz
-  barcode02.fastq.gz
-  barcode03.fastq.gz
+```text
+FASTQ_DIR/
+  sample1.fastq.gz
+  sample2.fastq.gz
+  ...
 ```
 
-⚠️ Notes:
-- Corrupted `.fastq.gz` will fail QC (NanoFilt).  
-  You can test quickly using:
-  ```bash
-  gzip -t barcode01.fastq.gz
-  ```
-
----
-
-### 2) DB root directory (`-d`)
-
-The DB folder must contain BOTH Bakta DB and CheckM2 DB under a single root:
-
-```
+```text
 DB/
   bakta_DB/
   CheckM2_database/
     uniref100.KO.1.dmnd
 ```
 
-Example:
-
-```bash
--d /media/uhlemann/Core3_V2/DB/longWGS_DB
-```
-
----
-
-### 3) Snakemake directory (`-s`)
-
-This is the folder containing the pipeline Snakefile:
-
-```
-/home/uhlemann/heekuk_path/
-  Go_longWGS.smk
-```
-
-Example:
-
-```bash
--s /home/uhlemann/heekuk_path
-```
-
 ---
 
 ## Outputs
 
-The output directory (`-o`) will be created with the following structure:
-
-```
+```text
 OUTDIR/
-  1_QC/             (porechop_abi + NanoFilt output: *.clean.fastq.gz)
-  2_quast/          (QUAST reports; from medaka fasta)
-  3_autocycler/     ({sample}/autocycler_out/consensus_assembly.{fasta,gfa})
-  4_medaka/         ({sample}_final_assembly.fasta)
-  5_checkm2/        ({sample}/quality_report.tsv + DONE.txt + raw/)
-  6_coverage/       ({sample}/sorted BAM + contig mean depth + DONE.txt)
-  7_bakta/          ({sample}/DONE.txt + annotation outputs)
+  1_QC/
+  2_quast/
+  3_autocycler/
+  4_medaka/
+  5_checkm2/
+  6_coverage/
+  7_bakta/
   checkm2_coverage_summary.xlsx
 ```
 
@@ -123,10 +101,8 @@ OUTDIR/
 
 ## Notes
 
-- Snakemake is executed inside Docker.
-- The pipeline automatically retries with `--unlock` if a Snakemake lock issue is detected.
-- If you want Bandage images, run Bandage separately after the pipeline finishes  
-  (Bandage is intentionally NOT included in the Snakefile).
+- Wrapper auto-retries lock issues with `--unlock`.
+- `gzip -t sample.fastq.gz` is recommended before run.
 
 ---
 

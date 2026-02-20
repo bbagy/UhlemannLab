@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
-usage(){ echo "Usage: $0 -i INPUT -o OUTPUT -d DB -s SNAKEDIR [-p 0|1]"; exit 1; }
+usage(){ echo "Usage: $0 -i INPUT -o OUTPUT -d DB -s SNAKEDIR [-p 0|1] [-n]"; exit 1; }
 
 INPUT=""; OUTPUT=""; DB=""; SNAKEDIR=""; PORECHOP=0
-while getopts "i:o:d:s:p:" opt; do
+DRYRUN=0
+while getopts "i:o:d:s:p:n" opt; do
   case $opt in
     i) INPUT="$OPTARG" ;;
     o) OUTPUT="$OPTARG" ;;
     d) DB="$OPTARG" ;;
     s) SNAKEDIR="$OPTARG" ;;
     p) PORECHOP="$OPTARG" ;;
+    n) DRYRUN=1 ;;
     *) usage ;;
   esac
 done
@@ -21,13 +23,17 @@ CMD="snakemake --snakefile /pipeline/Go_longWGS.smk \
   --config Fastq_DIRS=\"$INPUT\" output=\"$OUTPUT\" database=\"/db\" threads=4 do_porechop=$PORECHOP \
   --cores 8 --rerun-incomplete"
 
-run(){ docker run --rm -it \
+if [ "$DRYRUN" -eq 1 ]; then
+  CMD="$CMD --dry-run"
+fi
+
+run(){ docker run --rm \
   -u "$(id -u):$(id -g)" \
   -v "$WORKDIR":/work \
   -v "$DB":/db \
   -v "$SNAKEDIR":/pipeline \
   -w /work \
-  longwgs bash -lc "$1"; }
+  longwgs $1; }
 
 set +e
 run "$CMD" 2>&1 | tee longwgs.log

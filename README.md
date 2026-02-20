@@ -1,54 +1,60 @@
-# Uhlemann Lab — Core Pipelines
+# UhlemannLab Pipelines
 
-Containerized Snakemake pipelines for sequencing analysis.  
-Each pipeline is self-contained with its own `Dockerfile`, `Snakefile`, `run.sh`, and documentation.
+![Snakemake](https://img.shields.io/badge/Snakemake-Workflow-039be5)
+![Docker](https://img.shields.io/badge/Docker-Containerized-0db7ed)
+![Status](https://img.shields.io/badge/Status-Active-2e7d32)
 
----
-
-## Pipelines
-
-| Pipeline | Type | Description | Docs |
-|---------|------|-------------|------|
-| **PFsnake** | Illumina WGS | *Plasmodium falciparum* WGS pipeline (QC → mapping → variant calling → CNV → drug resistance → report) | [Open](PFsnake/) |
-| **shortWGS** | Illumina WGS | Bacterial WGS pipeline for Illumina short reads | [Open](shortWGS/) |
-| **longWGS** | ONT WGS | Bacterial WGS pipeline for ONT long reads | [Open](longWGS/) |
-| **RNake** | RNA-seq | RNA-seq pipeline (experimental / under development) | [Open](RNake/) |
-| **TnSeq_ONT** | TnSeq_ONT | TnSeq_ONT pipeline (experimental / under development) | [Open](TnSeq_ONT/) |
+Containerized sequencing pipelines for routine analysis in the Uhlemann Lab.
+Each pipeline is self-contained with its own `Dockerfile`, workflow, wrapper script, and README.
 
 ---
 
-## General philosophy
+## Pipeline Catalog
 
-- Pipelines are designed for reproducibility and shared workstation usage.
-- No tool installation is required on the host machine.
-- Each pipeline runs inside Docker.
-- Each pipeline folder includes a `run.sh` wrapper so users do not need to type long `docker run` commands.
+| Pipeline | Data type | Focus | Entry point |
+|---|---|---|---|
+| [`PFsnake`](PFsnake/) | Illumina WGS | *P. falciparum* variant/CNV/drug summary | `PFsnake/Go_PFsnake.sh` |
+| [`shortWGS`](shortWGS/) | Illumina WGS | Bacterial typing (MLST/ARG/Plasmid/TETyper) | `shortWGS/Go_shortWGS.sh` |
+| [`longWGS`](longWGS/) | ONT WGS | Assembly/polishing/QC/annotation | `longWGS/Go_longWGS.sh` |
+| [`RNake`](RNake/) | RNA-seq | Bacterial RNA-seq count workflow | `RNake/Go_Rnake.sh` |
+| [`TnSeq_ONT`](TnSeq_ONT/) | ONT amplicon/TnSeq | Anchor-based flank extraction + clustering | `TnSeq_ONT/Go_search_tnseq_flank.py` |
 
 ---
 
-## Quick start
-
-1. Enter a pipeline folder  
-2. Build the docker image  
-3. Run the pipeline using `run.sh`
-
-Example:
+## Quick Start
 
 ```bash
+# 1) choose a pipeline
 cd PFsnake
+
+# 2) build image
 docker build -t pf-snake:1.0 .
-./run.sh --help
+
+# 3) check plan only (dry-run)
+./Go_PFsnake.sh -i /path/to/fastq -o out -d /path/to/ref.fasta -n
+
+# 4) run for real
+./Go_PFsnake.sh -i /path/to/fastq -o out -d /path/to/ref.fasta
 ```
+
+---
+
+## Common Conventions
+
+- Data and DB files are mounted from host paths.
+- Outputs are written under user-defined output directories.
+- Wrapper scripts auto-retry lock issues with Snakemake `--unlock`.
+- Dry-run is supported in wrapper scripts with `-n`.
 
 ---
 
 ## Notes
 
-- Reference databases are **not included** in this repository.
-- Output directories and sample data should remain outside the repo.
+- Reference databases are not versioned in this repository.
+- Large outputs should stay outside Git-tracked paths.
 
 ---
 
 ## Maintainer
 
-Developed and maintained by **Heekuk Park**.
+Heekuk Park

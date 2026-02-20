@@ -355,7 +355,7 @@ rule quast_qc:
         rm -rf "$outdir"
         mkdir -p "$outdir"
 
-        quast.py {input.asm} \
+        micromamba run -n quast_env quast.py {input.asm} \
           -o "$outdir" \
           --threads {threads} \
           --min-contig {QUAST_MIN_CONTIG}
@@ -510,7 +510,7 @@ rule bakta_annotate:
 
         fasta=$(realpath "{input.fasta}")
 
-        conda run -n bakta-env bakta \
+        bakta \
           --db "{BAKTA_DB}" \
           --output "$outdir" \
           --prefix "$sample" \

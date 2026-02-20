@@ -9,8 +9,6 @@ import re
 # Global variables
 master_dir = config["project"] + "_RNAseq_output"
 READ_DIR = config["read_dir"] 
-conda_shotgun = "/media/uhlemann/core4/DB/MAGs/shotgun.yaml"
-conda_MAGs = "/media/uhlemann/core4/DB/MAGs/MAGs.yaml"
 
 
 # === 완전 유연한 R1/R2/SAMPLES 탐색 ===
@@ -123,8 +121,6 @@ rule trim_reads:
         trimmed_r2_unpaired = f"{master_dir}/1_trim/{{sample}}.R2.unpaired.output.fastq.gz"
     log:
         f"{master_dir}/1_trim/{{sample}}.trimmomatic.log"
-    conda:
-        conda_shotgun
     shell:
         """
         echo "Trimming {wildcards.sample} ..."
@@ -141,8 +137,6 @@ rule index_genome:
         touch(f"{master_dir}/2_bowtie2_index/index_build.done")
     params:
         genome=config["genome"]
-    conda:
-        conda_MAGs
     shell:
         """
         bowtie2-build --threads 6 -f {params.genome} {master_dir}/2_bowtie2_index/index
@@ -158,8 +152,6 @@ rule map_reads:
         index = f"{master_dir}/2_bowtie2_index/index_build.done"
     output:
         f"{master_dir}/3_bowtie2_files/{{sample}}.aligned.sam"
-    conda:
-        conda_MAGs
     shell:
         """
         echo "Mapping {wildcards.sample} against indexed NR5452 WT SPADES assembly..."
@@ -171,8 +163,6 @@ rule sort_sam:
         f"{master_dir}/3_bowtie2_files/{{sample}}.aligned.sam"
     output:
         f"{master_dir}/3_bowtie2_files/{{sample}}.sorted.sam"
-    conda:
-        conda_MAGs
     shell:
         """
         echo "Processing {wildcards.sample} ..."
@@ -187,8 +177,6 @@ rule count_htseq:
     params:
         reference=config["gff"],
         idattr=lambda wildcards: detect_best_idattr(config["gff"], "CDS")
-    conda:
-        conda_shotgun
     shell:
         """
         echo "Processing {wildcards.sample} ..."
@@ -229,8 +217,6 @@ rule map_gene_ids:
         annotation_file = config["gff"]
     output:
         mapped_file = master_dir + "/merged_counts_with_gene_names.csv"
-    conda:
-        conda_shotgun
     shell:
         r"""
         python - <<'PY'
@@ -294,6 +280,4 @@ count_df = count_df[rearranged]
 count_df.to_csv("{output.mapped_file}", index=False)
 PY
         """
-
-
 

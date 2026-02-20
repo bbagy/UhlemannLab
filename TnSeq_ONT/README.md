@@ -1,46 +1,48 @@
-# Tnseq analysis (Anchor → Flank extraction) from ONT reads
+# TnSeq_ONT
+
+![ONT](https://img.shields.io/badge/Reads-ONT-2ca02c)
+![Python](https://img.shields.io/badge/Entry-Python%20CLI-3776ab)
+![Container](https://img.shields.io/badge/Runtime-Docker-0db7ed)
+
+Anchor-based flank extraction workflow from ONT reads, with optional QC/trimming, mapping, clustering, and summary tables.
 
 ---
 
-## Overview
+## Pipeline
 
-This pipeline extracts **flanking sequences** downstream of a known **anchor sequence**  
-(e.g. transposon / cassette / primer junction), using ONT reads.
-
-It supports:
-- multiple `.fastq.gz` files in a folder
-- optional NanoFilt QC
-- optional cutadapt trimming
-- minimap2 mapping to the anchor
-- flank extraction + junction extraction
-- clustering (vsearch)
-- summary output (Excel if possible)
+```mermaid
+flowchart LR
+  A[FASTQ] --> B[Optional NanoFilt/cutadapt]
+  B --> C[minimap2 to anchor]
+  C --> D[Flank extraction]
+  D --> E[vsearch clustering]
+  E --> F[summary.xlsx]
+```
 
 ---
 
 ## Requirements
 
-- Docker  
-- A Linux server
-- Long-read FASTQ files (`*.fastq.gz`)
+- Docker
+- Linux environment
+- ONT `*.fastq.gz`
 
 ---
 
-## Build docker image
+## Build
 
 ```bash
-docker build -t longwgs:1.0 .
+docker build -t flank-pipeline:1.0 .
 ```
 
 ---
 
-
-## Docker run example
+## Quick Start
 
 ```bash
 docker run --rm \
-  -v /Users/heekukpark/Dropbox/04_scripts/myscripts/Docker/flank_pipeline:/pipeline \
-  -v /Users/heekukpark/Documents/03_Core/2026/20260212_Gen_ont:/data \
+  -v /path/to/TnSeq_ONT:/pipeline \
+  -v /path/to/data:/data \
   -w /pipeline \
   flank-pipeline:1.0 \
   python Go_search_tnseq_flank.py \
@@ -54,31 +56,30 @@ docker run --rm \
 
 ---
 
-## Inputs
+## Key Arguments
 
-### `-i / --input`
-A directory containing ONT FASTQ files:
-
-- `*.fastq.gz`
-
-Each file is treated as one sample.
-
-Example:
-- `KpGD42_barcode01.fastq.gz`
-- `KpGD42_barcode02.fastq.gz`
+| Argument | Default | Description |
+|---|---:|---|
+| `-i, --input` | - | Input FASTQ directory |
+| `-o, --output` | - | Output directory |
+| `--anchor` | - | Anchor sequence |
+| `--anchor_name` | `anchor` | FASTA header for anchor |
+| `--flank_len` | `300` | Extracted downstream length |
+| `--threads` | `4` | minimap2 threads |
+| `--qmin` | none | NanoFilt min quality |
+| `--min_len` | none | NanoFilt min read length |
+| `--cluster_id` | `0.95` | vsearch identity |
+| `--top_n` | `3` | Top clusters in summary |
+| `--force` | off | Overwrite existing outputs |
 
 ---
 
-## Output directory structure
+## Outputs
 
-All outputs are written under the folder specified by `-o`.
-
-Example:
-
-```
+```text
 output_files/
   anchor.fa
-  summary.xlsx
+  summary.xlsx                       (or summary.ReadStats.tsv / summary.TopClusters.tsv)
   1_QC/
   2_minimap2/
   3_flank/
@@ -86,158 +87,16 @@ output_files/
   logs/
 ```
 
----
+Important per-sample files:
 
-## Output files (detailed)
-
-### Top-level outputs
-
-- **`anchor.fa`**  
-  The anchor sequence written as a FASTA file.  
-  (Generated automatically from `--anchor`.)
-
-- **`summary.xlsx`** *(if `openpyxl` is available)*  
-  Summary workbook containing:
-  - `ReadStats` sheet
-  - `TopClusters` sheet
-
-If `openpyxl` is missing, two TSV files are written instead:
-- `summary.ReadStats.tsv`
-- `summary.TopClusters.tsv`
+- `3_flank/{sample}.flank.fa`
+- `3_flank/{sample}.anchorHit_plus_flank.fa`
+- `4_cluster/{sample}/{sample}.cluster_sizes.tsv`
+- `logs/{sample}.qc_stats.txt`
+- `logs/{sample}.clean.fastq.flank_stats.txt`
 
 ---
 
-### `1_QC/` (QC + trimming)
+## Maintainer
 
-For each input FASTQ:
-
-- **`{sample}.clean.fastq.gz`**  
-  Cleaned reads after NanoFilt + optional cutadapt trimming.
-
----
-
-### `2_minimap2/` (anchor mapping)
-
-For each sample:
-
-- **`2_minimap2/{sample}/{sample}.anchor.paf`**  
-  minimap2 mapping results in PAF format.
-
----
-
-### `3_flank/` (flank extraction)
-
-For each sample:
-
-- **`{sample}.flank.fa`**  
-  Extracted flank-only sequences:
-  - sequence downstream of the anchor hit end
-  - anchor itself is NOT included
-  - poly-C tail trimming is applied (>=12 C's)
-  - sequences shorter than 20 bp are excluded
-
-- **`{sample}.anchorHit_plus_flank.fa`**  
-  Junction sequences:
-  - includes the anchor-hit region exactly as in the read
-  - plus downstream flank region
-  - NOT poly-C trimmed
-  - sequences shorter than 40 bp are excluded
-
-This file is useful for:
-- checking ONT error rate in the anchor region
-- confirming exact junction sequence
-
----
-
-### `4_cluster/` (vsearch clustering)
-
-For each sample:
-
-- **`4_cluster/{sample}/{sample}.centroids.fa`**  
-  Representative flank sequences for each cluster.
-
-- **`4_cluster/{sample}/{sample}.clusters.uc`**  
-  vsearch UC cluster assignment file.
-
-- **`4_cluster/{sample}/{sample}.cluster_sizes.tsv`**  
-  Cluster size table:
-
-  Columns:
-  - `cluster_id`
-  - `n_reads`
-
----
-
-### `logs/` (logs + stats)
-
-For each sample:
-
-- **`{sample}.qc_stats.txt`**  
-  QC stats table:
-
-  - `raw_reads`
-  - `nanofilt_reads`
-  - `clean_reads`
-
-- **`{sample}.clean.fastq.flank_stats.txt`**  
-  Flank extraction stats:
-
-  - `total_reads`
-  - `anchor_hits`
-  - `flank_written`
-  - `anchorHit_plus_flank_written`
-  - `flank_polyC_trimmed`
-
-- **`{sample}.nanofilt.log`** *(only if NanoFilt used)*  
-  NanoFilt command log.
-
-- **`{sample}.cutadapt.log`** *(only if cutadapt used)*  
-  cutadapt trimming log.
-
-- **`{sample}.clean.fastq.minimap2.log`**  
-  minimap2 log.
-
-- **`{sample}.flank.vsearch.log`**  
-  vsearch clustering log.
-
----
-
-## Summary tables explained
-
-### Sheet 1: `ReadStats`
-
-Per sample, includes:
-
-- FASTQ paths
-- raw/nanofilt/clean read counts
-- QC keep rate
-- anchor hit count + hit rate
-- number of sequences written to `flank.fa` and `anchorHit_plus_flank.fa`
-- length statistics (min/mean/median/max) for both FASTA outputs
-
----
-
-### Sheet 2: `TopClusters`
-
-Per sample, includes the top N clusters (default: 3):
-
-- cluster_id
-- n_reads
-- fraction (%)
-- centroids fasta path
-
----
-
-## Notes
-
-- ONT reads may align in reverse orientation; the pipeline automatically reverse-complements reads as needed.
-- By default, the pipeline trims poly-C tails (>=12 C's) from flank-only sequences.
-- If you want to overwrite existing results, add `--force`.
-
----
-
-
-## Maintainer / Contact
-
-Maintained by **Heekuk Park**  
-Email: hp2523@cumc.columbia.edu
+Heekuk Park
