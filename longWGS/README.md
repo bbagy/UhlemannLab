@@ -47,6 +47,34 @@ cd longWGS
 docker build -t longwgs .
 ```
 
+## Docker Tool Inventory
+
+Main tools included in the image (pipeline-dependent):
+
+- `snakemake`
+- `autocycler`
+- `medaka`
+- `quast`
+- `checkm2`
+- `bakta`
+- `samtools`
+- supporting utilities used by workflow rules
+
+## Run A Single Tool From The Image
+
+Examples (without conda on host):
+
+```bash
+# Snakemake version
+docker run --rm longwgs snakemake --version
+
+# CheckM2 help (example)
+docker run --rm longwgs checkm2 --help
+
+# Bakta help (example)
+docker run --rm longwgs bakta --help
+```
+
 ## Quick Start
 
 ```bash
@@ -54,6 +82,18 @@ docker build -t longwgs .
   -i /path/to/fastq \
   -o /path/to/output \
   -d /path/to/db \
+  -p 0 \
+  -K
+```
+
+Real example:
+
+```bash
+Go_longWGS.sh \
+  -i 1_merged_fastqs \
+  -o 2_longWGS_out \
+  -d /media/uhlemann/Core3_V2/DB/longWGS_DB \
+  -s /home/uhlemann/heekuk_path \
   -p 0 \
   -K
 ```

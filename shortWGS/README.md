@@ -54,6 +54,31 @@ The image uses multi-environment setup:
 
 The Snakefile runs tools via `micromamba run -n <env> ...`.
 
+## Docker Tool Inventory
+
+Representative tools included:
+
+- `wgs` env: `snakemake`, `fastp`, `kraken2`, `multiqc`, `Rscript`, `bowtie2`, `samtools`, `bcftools`
+- `srst2` env: `srst2` (+ required mapping tools)
+- `tetyper` env: `python`, `spades.py`, `samtools`, `bcftools`, `blastn`, `TETyper_modi.py` dependencies
+
+## Run A Single Tool From The Image
+
+Examples (without conda on host):
+
+```bash
+# main env tools
+docker run --rm shortwgs:1.0 snakemake --version
+docker run --rm shortwgs:1.0 fastp --version
+docker run --rm shortwgs:1.0 kraken2 --version
+
+# srst2 env
+docker run --rm shortwgs:1.0 micromamba run -n srst2 srst2 --help
+
+# tetyper env
+docker run --rm shortwgs:1.0 micromamba run -n tetyper python /usr/local/bin/TETyper_modi.py --help
+```
+
 ## Quick Start
 
 ```bash
