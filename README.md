@@ -25,6 +25,10 @@ Each pipeline is self-contained with its own `Dockerfile`, workflow, wrapper scr
 
 - HTML overview page: [`docs/index.html`](docs/index.html)
 - For GitHub Pages, publish from `main` branch / `docs` folder.
+- For Read the Docs, this repository now includes:
+  - [`.readthedocs.yaml`](.readthedocs.yaml)
+  - [`docs/requirements.txt`](docs/requirements.txt)
+  - [`docs/source/index.rst`](docs/source/index.rst)
 
 ---
 
