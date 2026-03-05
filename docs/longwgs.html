@@ -27,8 +27,8 @@
       <span class="badge">ONT WGS</span>
       <h1>longWGS</h1>
       <p>Bacterial ONT workflow for assembly, polishing, QC, coverage and annotation.</p>
-      <div class="card">
-        <strong>Status:</strong> this pipeline is tested in Nook and Core3 workstation.
+      <div class="status-banner status-tested">
+        STATUS: TESTED IN NOOK AND CORE3 WORKSTATION
       </div>
 
       <h2>Build</h2>
@@ -40,6 +40,15 @@ docker build -t longwgs .</code></pre></div>
   -i /path/to/fastq \
   -o /path/to/output \
   -d /path/to/db \
+  -K</code></pre></div>
+
+      <h2>Real Example</h2>
+      <div class="card"><pre><code>Go_longWGS.sh \
+  -i 1_merged_fastqs \
+  -o 2_longWGS_out \
+  -d /media/uhlemann/Core3_V2/DB/longWGS_DB \
+  -s /home/uhlemann/heekuk_path \
+  -p 0 \
   -K</code></pre></div>
 
       <h2>Pipeline Flow</h2>

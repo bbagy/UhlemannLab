@@ -120,6 +120,27 @@ p, li {
   margin-top: 12px;
 }
 
+.status-banner {
+  margin-top: 12px;
+  border-radius: 12px;
+  border: 2px solid;
+  padding: 12px 14px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+}
+
+.status-tested {
+  border-color: #1f8f62;
+  background: #e8f8ef;
+  color: #0f5a3c;
+}
+
+.status-wip {
+  border-color: #b07b16;
+  background: #fff4df;
+  color: #7a5310;
+}
+
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

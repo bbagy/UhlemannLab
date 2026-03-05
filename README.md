@@ -27,30 +27,14 @@ Each pipeline is self-contained with its own `Dockerfile`, workflow, wrapper scr
 
 ---
 
-## Quick Start
-
-```bash
-# 1) choose a pipeline
-cd PFsnake
-
-# 2) build image
-docker build -t pf-snake:1.0 .
-
-# 3) check plan only (dry-run)
-./Go_PFsnake.sh -i /path/to/fastq -o out -d /path/to/ref.fasta -n
-
-# 4) run for real
-./Go_PFsnake.sh -i /path/to/fastq -o out -d /path/to/ref.fasta
-```
-
----
-
 ## Common Conventions
 
 - Data and DB files are mounted from host paths.
 - Outputs are written under user-defined output directories.
 - Wrapper scripts auto-retry lock issues with Snakemake `--unlock`.
-- Dry-run is supported in wrapper scripts with `-n`.
+- Common wrapper flags:
+  - `-n`: dry-run (show execution plan only)
+  - `-K`: keep-going (continue independent jobs even if some fail)
 
 ---
 
