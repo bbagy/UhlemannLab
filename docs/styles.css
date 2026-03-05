@@ -1,0 +1,148 @@
+:root {
+  --bg: #f3f5f2;
+  --panel: #ffffff;
+  --ink: #16222d;
+  --muted: #4f5f6f;
+  --line: #d7ded2;
+  --accent: #0f6d7a;
+  --accent-soft: #e5f3f6;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 270px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  border-right: 1px solid var(--line);
+  background: linear-gradient(180deg, #f7faf8 0%, #eef4ef 100%);
+  padding: 18px 14px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin: 4px 6px 14px;
+}
+
+.nav a {
+  display: block;
+  margin: 6px 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 11px;
+  color: var(--ink);
+  text-decoration: none;
+  background: #fff;
+  font-size: 0.92rem;
+}
+
+.nav a:hover {
+  border-color: #9cb7bf;
+  background: #f9fdff;
+}
+
+.nav a.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.main {
+  padding: 28px 30px 50px;
+}
+
+.badge {
+  display: inline-block;
+  border: 1px solid #b9d7de;
+  color: #155768;
+  background: #eaf8fb;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  padding: 4px 9px;
+}
+
+h1 {
+  margin: 8px 0 10px;
+  font-size: 1.85rem;
+}
+
+h2 {
+  margin-top: 26px;
+  font-size: 1.2rem;
+}
+
+p, li {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 12px;
+}
+
+pre {
+  margin: 0;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  overflow-x: auto;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+th, td {
+  border-bottom: 1px solid var(--line);
+  padding: 8px 10px;
+  text-align: left;
+}
+
+th {
+  background: #f0f4ef;
+  color: #2c3c49;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .main {
+    padding: 20px 16px 34px;
+  }
+}
+

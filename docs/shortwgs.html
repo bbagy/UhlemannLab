@@ -3,38 +3,51 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>shortWGS Usage</title>
-  <style>
-    body { font-family: "Segoe UI", sans-serif; margin: 0; background: #f7f8f6; color: #18232e; }
-    main { max-width: 900px; margin: 0 auto; padding: 28px 18px 40px; }
-    a { color: #165f8e; text-decoration: none; } a:hover { text-decoration: underline; }
-    h1 { margin: 0 0 12px; } h2 { margin-top: 24px; }
-    pre { background: #fff; border: 1px solid #d9dfd3; border-radius: 10px; padding: 12px; overflow-x: auto; }
-    code { font-family: ui-monospace, Menlo, Consolas, monospace; }
-  </style>
+  <title>shortWGS</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<main>
-  <p><a href="./">← Back to Portal</a></p>
-  <h1>shortWGS</h1>
-  <p>Illumina bacterial typing workflow (Kraken2, SRST2, TETyper, summary report).</p>
-  <h2>Build</h2>
-  <pre><code>cd shortWGS
-docker build --network=host -t shortwgs:1.0 .</code></pre>
-  <h2>Run</h2>
-  <pre><code>./shortWGS/Go_shortWGS.sh \
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">UhlemannLab Docs</div>
+      <nav class="nav">
+        <a href="./">Home</a>
+        <a href="longwgs.html">longWGS</a>
+        <a class="active" href="shortwgs.html">shortWGS</a>
+        <a href="pfsnake.html">PFsnake</a>
+        <a href="rnake.html">RNake</a>
+        <a href="tnseq_ont.html">TnSeq_ONT</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <span class="badge">Illumina WGS</span>
+      <h1>shortWGS</h1>
+      <p>QC, Kraken2 species inference, SRST2 typing, TETyper, and HTML/CSV summary generation.</p>
+
+      <h2>Build</h2>
+      <div class="card"><pre><code>cd shortWGS
+docker build --network=host -t shortwgs:1.0 .</code></pre></div>
+
+      <h2>Run</h2>
+      <div class="card"><pre><code>./shortWGS/Go_shortWGS.sh \
   -i /path/to/fastq \
   -o /path/to/output \
   -d /path/to/WGS_DB2 \
   -k /path/to/kraken2_db \
   -r /path/to/GoWGS \
-  -K</code></pre>
-  <h2>Useful Options</h2>
-  <pre><code>-n  dry-run
--K  keep-going
--c  cores
--m  custom docker image tag</code></pre>
-</main>
+  -K</code></pre></div>
+
+      <h2>Options</h2>
+      <table>
+        <tr><th>Flag</th><th>Description</th></tr>
+        <tr><td><code>-n</code></td><td>Dry-run</td></tr>
+        <tr><td><code>-K</code></td><td>Keep-going</td></tr>
+        <tr><td><code>-c</code></td><td>Snakemake cores</td></tr>
+        <tr><td><code>-m</code></td><td>Custom docker image tag</td></tr>
+      </table>
+    </main>
+  </div>
 </body>
 </html>
 

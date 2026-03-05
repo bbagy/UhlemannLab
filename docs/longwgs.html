@@ -3,36 +3,49 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>longWGS Usage</title>
-  <style>
-    body { font-family: "Segoe UI", sans-serif; margin: 0; background: #f7f8f6; color: #18232e; }
-    main { max-width: 900px; margin: 0 auto; padding: 28px 18px 40px; }
-    a { color: #165f8e; text-decoration: none; } a:hover { text-decoration: underline; }
-    h1 { margin: 0 0 12px; } h2 { margin-top: 24px; }
-    pre { background: #fff; border: 1px solid #d9dfd3; border-radius: 10px; padding: 12px; overflow-x: auto; }
-    code { font-family: ui-monospace, Menlo, Consolas, monospace; }
-  </style>
+  <title>longWGS</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<main>
-  <p><a href="./">← Back to Portal</a></p>
-  <h1>longWGS</h1>
-  <p>ONT bacterial WGS assembly/polishing/QC/annotation pipeline.</p>
-  <h2>Build</h2>
-  <pre><code>cd longWGS
-docker build -t longwgs .</code></pre>
-  <h2>Run</h2>
-  <pre><code>./longWGS/Go_longWGS_V1_1.sh \
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">UhlemannLab Docs</div>
+      <nav class="nav">
+        <a href="./">Home</a>
+        <a class="active" href="longwgs.html">longWGS</a>
+        <a href="shortwgs.html">shortWGS</a>
+        <a href="pfsnake.html">PFsnake</a>
+        <a href="rnake.html">RNake</a>
+        <a href="tnseq_ont.html">TnSeq_ONT</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <span class="badge">ONT WGS</span>
+      <h1>longWGS</h1>
+      <p>Bacterial ONT workflow for assembly, polishing, QC, coverage and annotation.</p>
+
+      <h2>Build</h2>
+      <div class="card"><pre><code>cd longWGS
+docker build -t longwgs .</code></pre></div>
+
+      <h2>Run</h2>
+      <div class="card"><pre><code>./longWGS/Go_longWGS_V1_1.sh \
   -i /path/to/fastq \
   -o /path/to/output \
   -d /path/to/db \
-  -K</code></pre>
-  <h2>Useful Options</h2>
-  <pre><code>-n  dry-run
--K  keep-going
--p  0|1 (porechop off/on)
--s  custom Snakefile directory</code></pre>
-</main>
+  -K</code></pre></div>
+
+      <h2>Options</h2>
+      <table>
+        <tr><th>Flag</th><th>Description</th></tr>
+        <tr><td><code>-n</code></td><td>Dry-run</td></tr>
+        <tr><td><code>-K</code></td><td>Keep-going</td></tr>
+        <tr><td><code>-p 0|1</code></td><td>Porechop off/on</td></tr>
+        <tr><td><code>-s</code></td><td>Custom snakefile directory</td></tr>
+      </table>
+    </main>
+  </div>
 </body>
 </html>
 

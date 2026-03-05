@@ -3,31 +3,41 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RNake Usage</title>
-  <style>
-    body { font-family: "Segoe UI", sans-serif; margin: 0; background: #f7f8f6; color: #18232e; }
-    main { max-width: 900px; margin: 0 auto; padding: 28px 18px 40px; }
-    a { color: #165f8e; text-decoration: none; } a:hover { text-decoration: underline; }
-    pre { background: #fff; border: 1px solid #d9dfd3; border-radius: 10px; padding: 12px; overflow-x: auto; }
-    code { font-family: ui-monospace, Menlo, Consolas, monospace; }
-  </style>
+  <title>RNake</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<main>
-  <p><a href="./">← Back to Portal</a></p>
-  <h1>RNake</h1>
-  <p>Bacterial RNA-seq pipeline for trimming, mapping, and count tables.</p>
-  <h2>Build</h2>
-  <pre><code>cd RNake
-docker build -t rnake:latest .</code></pre>
-  <h2>Run</h2>
-  <pre><code>./RNake/Go_Rnake.sh \
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">UhlemannLab Docs</div>
+      <nav class="nav">
+        <a href="./">Home</a>
+        <a href="longwgs.html">longWGS</a>
+        <a href="shortwgs.html">shortWGS</a>
+        <a href="pfsnake.html">PFsnake</a>
+        <a class="active" href="rnake.html">RNake</a>
+        <a href="tnseq_ont.html">TnSeq_ONT</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <span class="badge">RNA-seq</span>
+      <h1>RNake</h1>
+      <p>Bacterial RNA-seq trimming, mapping and count-table generation workflow.</p>
+
+      <h2>Build</h2>
+      <div class="card"><pre><code>cd RNake
+docker build -t rnake:latest .</code></pre></div>
+
+      <h2>Run</h2>
+      <div class="card"><pre><code>./RNake/Go_Rnake.sh \
   -i /path/to/reads \
   -o project_name \
   -g /path/to/genome.fna \
   -a /path/to/annotation.gff \
-  -K</code></pre>
-</main>
+  -K</code></pre></div>
+    </main>
+  </div>
 </body>
 </html>
 
