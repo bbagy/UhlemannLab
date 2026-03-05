@@ -30,6 +30,8 @@ body {
   position: sticky;
   top: 0;
   height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .brand {
@@ -58,6 +60,27 @@ body {
 .nav a.active {
   border-color: var(--accent);
   background: var(--accent-soft);
+}
+
+.sidebar-foot {
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.repo-link {
+  display: block;
+  text-align: center;
+  border: 1px solid #8fb9c3;
+  border-radius: 10px;
+  padding: 10px 10px;
+  text-decoration: none;
+  background: #e9f6f9;
+  color: #124b58;
+  font-size: 0.88rem;
+}
+
+.repo-link:hover {
+  background: #dff1f5;
 }
 
 .main {
@@ -145,4 +168,3 @@ th {
     padding: 20px 16px 34px;
   }
 }
-

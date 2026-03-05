@@ -18,6 +18,9 @@
         <a href="rnake.html">RNake</a>
         <a href="tnseq_ont.html">TnSeq_ONT</a>
       </nav>
+      <div class="sidebar-foot">
+        <a class="repo-link" href="https://github.com/bbagy/UhlemannLab" target="_blank" rel="noopener noreferrer">Open GitHub Repository</a>
+      </div>
     </aside>
 
     <main class="main">
@@ -46,8 +49,17 @@
           <li><strong>TnSeq_ONT</strong>: ONT flank extraction and clustering</li>
         </ul>
       </div>
+
+      <div class="card">
+        <h2>Reproducibility Notes</h2>
+        <ul>
+          <li>Docker is the default runtime for all wrappers.</li>
+          <li>Input and database paths are mounted from host paths.</li>
+          <li>Each wrapper supports dry-run mode for plan validation.</li>
+          <li>Progress and lock-retry behavior are integrated in wrappers.</li>
+        </ul>
+      </div>
     </main>
   </div>
 </body>
 </html>
-

@@ -18,6 +18,9 @@
         <a href="rnake.html">RNake</a>
         <a href="tnseq_ont.html">TnSeq_ONT</a>
       </nav>
+      <div class="sidebar-foot">
+        <a class="repo-link" href="https://github.com/bbagy/UhlemannLab" target="_blank" rel="noopener noreferrer">Open GitHub Repository</a>
+      </div>
     </aside>
 
     <main class="main">
@@ -46,8 +49,21 @@ docker build --network=host -t shortwgs:1.0 .</code></pre></div>
         <tr><td><code>-c</code></td><td>Snakemake cores</td></tr>
         <tr><td><code>-m</code></td><td>Custom docker image tag</td></tr>
       </table>
+
+      <h2>Expected Input</h2>
+      <div class="card"><pre><code>FASTQ: paired-end (*.fastq.gz)
+WGS_DB2:
+  CARD/ PlasmidFinder/ MLST/ tetyper/
+Kraken2 DB directory
+GoWGS host directory (for Rmd template path)</code></pre></div>
+
+      <h2>Main Outputs</h2>
+      <div class="card"><pre><code>1_fastp_out/ 2a_kraken2/ 2_ST_srst2_out/
+3_ARGs_srst2_out/ 4_Plasmid_srst2_out/ 5_TETyper/
+multiqc_report.html
+summary_master.csv
+summary_report.html</code></pre></div>
     </main>
   </div>
 </body>
 </html>
-

@@ -18,6 +18,9 @@
         <a class="active" href="rnake.html">RNake</a>
         <a href="tnseq_ont.html">TnSeq_ONT</a>
       </nav>
+      <div class="sidebar-foot">
+        <a class="repo-link" href="https://github.com/bbagy/UhlemannLab" target="_blank" rel="noopener noreferrer">Open GitHub Repository</a>
+      </div>
     </aside>
 
     <main class="main">
@@ -36,8 +39,14 @@ docker build -t rnake:latest .</code></pre></div>
   -g /path/to/genome.fna \
   -a /path/to/annotation.gff \
   -K</code></pre></div>
+
+      <h2>Main Outputs</h2>
+      <div class="card"><pre><code>&lt;PROJECT&gt;_RNAseq_output/
+  1_trim/
+  3_bowtie2_files/
+  5_counts/
+  merged_counts_with_gene_names.csv</code></pre></div>
     </main>
   </div>
 </body>
 </html>
-

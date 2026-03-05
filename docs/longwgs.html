@@ -18,6 +18,9 @@
         <a href="rnake.html">RNake</a>
         <a href="tnseq_ont.html">TnSeq_ONT</a>
       </nav>
+      <div class="sidebar-foot">
+        <a class="repo-link" href="https://github.com/bbagy/UhlemannLab" target="_blank" rel="noopener noreferrer">Open GitHub Repository</a>
+      </div>
     </aside>
 
     <main class="main">
@@ -44,8 +47,21 @@ docker build -t longwgs .</code></pre></div>
         <tr><td><code>-p 0|1</code></td><td>Porechop off/on</td></tr>
         <tr><td><code>-s</code></td><td>Custom snakefile directory</td></tr>
       </table>
+
+      <h2>Expected Input</h2>
+      <div class="card"><pre><code>FASTQ_DIR/
+  sample1.fastq.gz
+  sample2.fastq.gz
+DB/
+  medaka_models/
+  plassembler_db/
+  (other rule-required DBs)</code></pre></div>
+
+      <h2>Main Outputs</h2>
+      <div class="card"><pre><code>1_QC/ 2_quast/ 3_autocycler/ 4_medaka/
+5_checkm2/ 6_coverage/ 7_bakta/
+8_Bandage_image/ (optional)</code></pre></div>
     </main>
   </div>
 </body>
 </html>
-
