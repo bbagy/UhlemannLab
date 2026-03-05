@@ -59,9 +59,12 @@ Go_Rnake.sh \
 | `-o` | - | Project/output prefix |
 | `-g` | - | Reference genome FASTA |
 | `-a` | - | Annotation GFF |
+| `-s` | script directory | Optional Snakefile directory override |
 | `-c` | `8` | Snakemake cores |
 | `-m` | `rnake:latest` | Docker image |
 | `-n` | off | Dry-run (`snakemake --dry-run`) |
+| `-K` | off | Keep going on independent job failures (`--keep-going`) |
+| `-P` | `1` | Show periodic progress snapshots in current terminal (`1` on, `0` off) |
 
 ---
 
@@ -81,6 +84,15 @@ sed '/^##FASTA$/,$d' your_prokka_output.gff > cleaned.gff
 Main output:
 
 - `merged_counts_with_gene_names.csv`
+
+---
+
+## Notes
+
+- `Go_Rnake.sh` runs input prefilter before Snakemake:
+  - gzip integrity check (`gzip -t`)
+  - bad FASTQ moved to sibling `0_bad_fastqs/`
+  - bad log: `0_bad_fastqs/moved_bad_fastqs.tsv`
 
 ---
 

@@ -21,6 +21,13 @@ Each pipeline is self-contained with its own `Dockerfile`, workflow, wrapper scr
 
 ---
 
+## Toolset Page
+
+- HTML overview page: [`docs/index.html`](docs/index.html)
+- For GitHub Pages, publish from `main` branch / `docs` folder.
+
+---
+
 ## Quick Start
 
 ```bash

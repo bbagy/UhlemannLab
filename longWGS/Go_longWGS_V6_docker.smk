@@ -30,7 +30,7 @@
 #   --cores 8 --rerun-incomplete --keep-going
 #############################################
 
-import os, glob
+import os, glob, json
 
 
 # ----------------
@@ -38,26 +38,41 @@ import os, glob
 # ----------------
 FASTQ_DIRS = config.get("Fastq_DIRS", "2_qc_fastqs")
 OUTDIR     = config.get("output", "3_assembled_all")
+PIPELINE_MODE = str(config.get("pipeline_mode", "strict")).strip().lower()
 
-THREADS_PER_JOB = int(config.get("threads", 4))  # autocycler helper threads
-JOBS            = int(config.get("jobs", 2))     # GNU parallel jobs inside autocycler
+THREADS_PER_JOB = int(config.get("threads", 2))  # autocycler helper threads
+JOBS            = int(config.get("jobs", 1))     # GNU parallel jobs inside autocycler
 READ_TYPE       = config.get("read_type", "ont_r10")
 MAX_TIME        = config.get("max_time", "12h")
 
-QC_THREADS      = int(config.get("qc_threads", 8))
+QC_THREADS      = int(config.get("qc_threads", 2))
 QC_MIN_Q        = int(config.get("qc_min_q", 10))
 QC_MIN_LEN      = int(config.get("qc_min_len", 1000))
 
-MEDAKA_THREADS  = int(config.get("medaka_threads", 4))
+MEDAKA_THREADS  = int(config.get("medaka_threads", 2))
+MEDAKA_MODEL    = str(config.get("medaka_model", "")).strip()
+MEDAKA_FALLBACK_MODEL = str(
+    config.get("medaka_fallback_model", MEDAKA_MODEL if MEDAKA_MODEL else "r1041_e82_400bps_hac_g632")
+).strip()
 
-QUAST_THREADS   = int(config.get("quast_threads", 4))
+QUAST_THREADS   = int(config.get("quast_threads", 2))
 QUAST_MIN_CONTIG= int(config.get("quast_min_contig", 500))
 
-CHECKM2_THREADS = int(config.get("checkm2_threads", 8))
+CHECKM2_THREADS = int(config.get("checkm2_threads", 2))
 
-COV_THREADS     = int(config.get("cov_threads", 8))
+COV_THREADS     = int(config.get("cov_threads", 2))
 
-BAKTA_THREADS   = int(config.get("bakta_threads", 8))
+BAKTA_THREADS   = int(config.get("bakta_threads", 2))
+
+# Stage memory limits (override via --config)
+QC_MEM_MB         = int(config.get("qc_mem_mb", 8000))
+AUTOCYCLER_MEM_MB = int(config.get("autocycler_mem_mb", 32000))
+MEDAKA_MEM_MB     = int(config.get("medaka_mem_mb", 32000))
+QUAST_MEM_MB      = int(config.get("quast_mem_mb", 16000))
+CHECKM2_MEM_MB    = int(config.get("checkm2_mem_mb", 32000))
+COV_MEM_MB        = int(config.get("cov_mem_mb", 32000))
+BAKTA_MEM_MB      = int(config.get("bakta_mem_mb", 32000))
+SUMMARY_MEM_MB    = int(config.get("summary_mem_mb", 4000))
 
 TMPDIR          = config.get("tmpdir", "")
 
@@ -78,6 +93,7 @@ CHECKM2_DIR    = os.path.join(OUTDIR, "5_checkm2")
 COV_DIR        = os.path.join(OUTDIR, "6_coverage")
 BAKTA_DIR      = os.path.join(OUTDIR, "7_bakta")
 SUMMARY_XLSX   = os.path.join(OUTDIR, "checkm2_coverage_summary.xlsx")
+FAIL_LOG       = os.path.join(OUTDIR, "0_failed_samples.tsv")
 
 
 # ----------------
@@ -102,11 +118,17 @@ if DB_ROOT:
 # FASTQ discovery (raw input)
 # ----------------
 def discover_fastqs(fastq_dirs):
-    fastq_dirs = str(fastq_dirs)
-    pats = [
-        os.path.join(fastq_dirs, "*.fastq.gz"),
-        os.path.join(fastq_dirs, "*.fq.gz")
-    ]
+    if isinstance(fastq_dirs, (list, tuple)):
+        dirs = [str(x).strip() for x in fastq_dirs if str(x).strip()]
+    else:
+        dirs = [x.strip() for x in str(fastq_dirs).split(",") if x.strip()]
+
+    pats = []
+    for d in dirs:
+        pats.extend([
+            os.path.join(d, "*.fastq.gz"),
+            os.path.join(d, "*.fq.gz")
+        ])
     files = []
     for p in pats:
         files.extend(glob.glob(p))
@@ -142,25 +164,28 @@ if not SAMPLES:
 # ----------------
 # RULE ALL
 # ----------------
+STRICT_ALL_INPUTS = [
+    # final fasta
+    *expand(os.path.join(MEDAKA_DIR, "{sample}_final_assembly.fasta"), sample=SAMPLES),
+    # quast report
+    *expand(os.path.join(QUAST_DIR, "{sample}", "report.txt"), sample=SAMPLES),
+    # checkm2 fixed report + done marker
+    *expand(os.path.join(CHECKM2_DIR, "{sample}", "quality_report.tsv"), sample=SAMPLES),
+    *expand(os.path.join(CHECKM2_DIR, "{sample}", "DONE.txt"), sample=SAMPLES),
+    # coverage marker
+    *expand(os.path.join(COV_DIR, "{sample}", "DONE.txt"), sample=SAMPLES),
+    # bakta marker
+    *expand(os.path.join(BAKTA_DIR, "{sample}", "DONE.txt"), sample=SAMPLES),
+    SUMMARY_XLSX
+]
+
+PERMISSIVE_ALL_INPUTS = [SUMMARY_XLSX]
+
+ALL_INPUTS = PERMISSIVE_ALL_INPUTS if PIPELINE_MODE == "permissive" else STRICT_ALL_INPUTS
+
 rule all:
     input:
-        # final fasta
-        expand(os.path.join(MEDAKA_DIR, "{sample}_final_assembly.fasta"), sample=SAMPLES),
-
-        # quast report
-        expand(os.path.join(QUAST_DIR, "{sample}", "report.txt"), sample=SAMPLES),
-
-        # checkm2 fixed report + done marker
-        expand(os.path.join(CHECKM2_DIR, "{sample}", "quality_report.tsv"), sample=SAMPLES),
-        expand(os.path.join(CHECKM2_DIR, "{sample}", "DONE.txt"), sample=SAMPLES),
-
-        # coverage marker
-        expand(os.path.join(COV_DIR, "{sample}", "DONE.txt"), sample=SAMPLES),
-
-        # bakta marker
-        expand(os.path.join(BAKTA_DIR, "{sample}", "DONE.txt"), sample=SAMPLES),
-
-        SUMMARY_XLSX
+        ALL_INPUTS
 
 # ----------------
 # 1) QC: porechop_abi + NanoFilt
@@ -172,13 +197,18 @@ rule qc_clean_reads:
         clean=os.path.join(QC_DIR, "{sample}.clean.fastq.gz")
     threads: QC_THREADS
     resources:
-        mem_mb=8000
+        mem_mb=QC_MEM_MB
     shell:
         r"""
         set -euo pipefail
+        fail_log="{FAIL_LOG}"
+        mkdir -p "$(dirname "$fail_log")"
+        [ -f "$fail_log" ] || echo -e "sample\tstage\treason" > "$fail_log"
+        trap 'echo -e "{wildcards.sample}\tqc\tcommand_failed" >> "$fail_log"' ERR
         mkdir -p "{QC_DIR}"
 
         in_fq=$(realpath {input.fq})
+        gzip -t "$in_fq"
 
         if [ -n "{TMPDIR}" ]; then
             mkdir -p "{TMPDIR}"
@@ -208,16 +238,39 @@ rule autocycler_assembly:
         gfa=os.path.join(AUTOCYCLER_DIR, "{sample}", "autocycler_out", "consensus_assembly.gfa")
     threads: THREADS_PER_JOB
     resources:
-        mem_mb=32000
+        mem_mb=AUTOCYCLER_MEM_MB
     shell:
         r"""
         set -euo pipefail
+        fail_log=$(realpath -m "{FAIL_LOG}")
+        mkdir -p "$(dirname "$fail_log")"
+        [ -f "$fail_log" ] || echo -e "sample\tstage\treason" > "$fail_log"
+        echo "[autocycler] START sample={wildcards.sample}"
         fq_abs=$(realpath "{input.fq}")
 
-        sample="{wildcards.sample}"
-        outdir="{AUTOCYCLER_DIR}/{wildcards.sample}"
-        mkdir -p "$outdir"
-        cd "$outdir"
+        outdir_abs=$(realpath -m "{AUTOCYCLER_DIR}/{wildcards.sample}")
+        mkdir -p "$outdir_abs"
+        cd "$outdir_abs"
+
+        fail_and_exit() {{
+            local reason="$1"
+            local size_mb="NA"
+            local last_err="NA"
+            trap - ERR
+            set +e
+            if [ -n "${{fq_abs:-}}" ] && [ -f "$fq_abs" ]; then
+                size_mb=$(du -m "$fq_abs" 2>/dev/null | awk '{{print $1}}')
+            fi
+            if [ -f autocycler.stderr ]; then
+                last_err=$(tail -n 1 autocycler.stderr | tr '\t' ' ' | tr '\r\n' ' ')
+                [ -n "$last_err" ] || last_err="NA"
+            fi
+            echo -e "{wildcards.sample}\tautocycler\t$reason;size_mb=${{size_mb}};last_err=${{last_err}}" >> "$fail_log" || true
+            echo "[autocycler][ERROR] sample={wildcards.sample} failed ($reason)." 1>&2
+            tail -n 120 autocycler.stderr 1>&2 || true
+            exit 1
+        }}
+        trap 'fail_and_exit "command_failed"' ERR
 
         
         fq_local=$(basename "$fq_abs")
@@ -234,13 +287,15 @@ rule autocycler_assembly:
         read_type="{READ_TYPE}"
         max_time="{MAX_TIME}"
 
-        genome_size=$(autocycler helper genome_size --reads "$reads" --threads "$threads")
+        genome_size=$(autocycler helper genome_size --reads "$reads" --threads "$threads" 2>> autocycler.stderr)
+        echo "[autocycler] genome_size=$genome_size"
 
+        echo "[autocycler] subsample ..."
         autocycler subsample \
           --reads "$reads" \
           --out_dir subsampled_reads \
           --genome_size "$genome_size" \
-          2>> autocycler.stderr
+          2>> autocycler.stderr || fail_and_exit "subsample_failed"
 
         mkdir -p assemblies
         rm -f assemblies/jobs.txt
@@ -264,7 +319,18 @@ rule autocycler_assembly:
           --results assemblies/logs \
           --timeout "$max_time" \
           < assemblies/jobs.txt
+        prc=$?
         set -e
+        if [ "$prc" -ne 0 ]; then
+            echo "[autocycler][ERROR] parallel returned non-zero: $prc" 1>&2
+            if [ -f assemblies/joblog.tsv ]; then
+                fail_n=$(awk -F'\t' 'NR>1 && $7 != 0 {{n++}} END{{print n+0}}' assemblies/joblog.tsv)
+                echo "[autocycler][ERROR] failed helper jobs: $fail_n" 1>&2
+                awk -F'\t' 'NR==1 || (NR>1 && $7 != 0)' assemblies/joblog.tsv | head -n 20 1>&2 || true
+            fi
+            tail -n 60 autocycler.stderr 1>&2 || true
+            fail_and_exit "parallel_nonzero_$prc"
+        fi
 
         shopt -s nullglob
         for f in assemblies/plassembler*.fasta; do
@@ -277,21 +343,35 @@ rule autocycler_assembly:
 
         rm -f subsampled_reads/*.fastq
 
-        autocycler compress -i assemblies -a autocycler_out 2>> autocycler.stderr
-        autocycler cluster -a autocycler_out 2>> autocycler.stderr
+        echo "[autocycler] compress ..."
+        autocycler compress -i assemblies -a autocycler_out 2>> autocycler.stderr || fail_and_exit "compress_failed"
+        echo "[autocycler] cluster ..."
+        autocycler cluster -a autocycler_out 2>> autocycler.stderr || fail_and_exit "cluster_failed"
 
-        for c in autocycler_out/clustering/qc_pass/cluster_*; do
-            autocycler trim -c "$c" 2>> autocycler.stderr
-            autocycler resolve -c "$c" 2>> autocycler.stderr
+        shopt -s nullglob
+        clusters=(autocycler_out/clustering/qc_pass/cluster_*)
+        shopt -u nullglob
+        if [ "${{#clusters[@]}}" -eq 0 ]; then
+            echo "[autocycler][ERROR] No qc_pass clusters found. Possible fragmented/contaminated assemblies." 1>&2
+            tail -n 120 autocycler.stderr 1>&2 || true
+            fail_and_exit "no_qc_pass_clusters"
+        fi
+
+        echo "[autocycler] trim/resolve clusters: ${{#clusters[@]}}"
+        for c in "${{clusters[@]}}"; do
+            autocycler trim -c "$c" 2>> autocycler.stderr || fail_and_exit "trim_failed"
+            autocycler resolve -c "$c" 2>> autocycler.stderr || fail_and_exit "resolve_failed"
         done
 
+        echo "[autocycler] combine ..."
         autocycler combine \
           -a autocycler_out \
-          -i autocycler_out/clustering/qc_pass/cluster_*/5_final.gfa \
-          2>> autocycler.stderr
+          -i "${{clusters[@]/%//5_final.gfa}}" \
+          2>> autocycler.stderr || fail_and_exit "combine_failed"
 
-        test -f autocycler_out/consensus_assembly.fasta
-        test -f autocycler_out/consensus_assembly.gfa
+        test -f autocycler_out/consensus_assembly.fasta || fail_and_exit "missing_consensus_fasta"
+        test -f autocycler_out/consensus_assembly.gfa || fail_and_exit "missing_consensus_gfa"
+        echo "[autocycler] DONE sample={wildcards.sample}"
         """
 
 
@@ -307,15 +387,22 @@ rule medaka_polish:
         final=os.path.join(MEDAKA_DIR, "{sample}_final_assembly.fasta")
     threads: MEDAKA_THREADS
     resources:
-        mem_mb=32000
+        mem_mb=MEDAKA_MEM_MB
     shell:
         r"""
         set -euo pipefail
+        fail_log=$(realpath -m "{FAIL_LOG}")
+        mkdir -p "$(dirname "$fail_log")"
+        [ -f "$fail_log" ] || echo -e "sample\tstage\treason" > "$fail_log"
+        trap 'echo -e "{wildcards.sample}\tmedaka\tcommand_failed" >> "$fail_log"' ERR
         mkdir -p "{MEDAKA_DIR}"
 
         fq=$(realpath {input.fq})
         draft=$(realpath {input.draft})
         out="{MEDAKA_DIR}/{wildcards.sample}_medaka"
+        medaka_log="$out/medaka.log"
+        fallback_model="{MEDAKA_FALLBACK_MODEL}"
+        draft_local=""
 
         if [ -n "{TMPDIR}" ]; then
             mkdir -p "{TMPDIR}"
@@ -324,13 +411,47 @@ rule medaka_polish:
 
         rm -rf "$out"
         mkdir -p "$out"
+        draft_local="$out/draft.fasta"
+        cp "$draft" "$draft_local"
+        rm -f "$draft_local.fai" "$draft_local.map-ont.mmi"
 
+        set +e
         medaka_consensus \
           -i "$fq" \
-          -d "$draft" \
+          -d "$draft_local" \
           -o "$out" \
           -t {threads} \
-          --bacteria
+          --bacteria \
+          > "$medaka_log" 2>&1
+        rc=$?
+        set -e
+
+        if [ "$rc" -ne 0 ]; then
+            echo "[medaka][WARN] --bacteria failed for {wildcards.sample}; retrying with -m $fallback_model" 1>&2
+            rm -rf "$out"
+            mkdir -p "$out"
+            medaka_log="$out/medaka.log"
+            draft_local="$out/draft.fasta"
+            cp "$draft" "$draft_local"
+            rm -f "$draft_local.fai" "$draft_local.map-ont.mmi"
+
+            set +e
+            medaka_consensus \
+              -i "$fq" \
+              -d "$draft_local" \
+              -o "$out" \
+              -t {threads} \
+              -m "$fallback_model" \
+              > "$medaka_log" 2>&1
+            rc=$?
+            set -e
+
+            if [ "$rc" -ne 0 ]; then
+                echo "[medaka][ERROR] fallback model failed for {wildcards.sample}: $fallback_model" 1>&2
+                tail -n 80 "$medaka_log" 1>&2 || true
+                exit 1
+            fi
+        fi
 
         cp "$out/consensus.fasta" {output.final}
         """
@@ -347,11 +468,16 @@ rule quast_qc:
         report=os.path.join(QUAST_DIR, "{sample}", "report.txt")
     threads: QUAST_THREADS
     resources:
-        mem_mb=16000
+        mem_mb=QUAST_MEM_MB
     shell:
         r"""
         set -euo pipefail
+        fail_log=$(realpath -m "{FAIL_LOG}")
+        mkdir -p "$(dirname "$fail_log")"
+        [ -f "$fail_log" ] || echo -e "sample\tstage\treason" > "$fail_log"
+        trap 'echo -e "{wildcards.sample}\tquast\tcommand_failed" >> "$fail_log"' ERR
         outdir="{QUAST_DIR}/{wildcards.sample}"
+
         rm -rf "$outdir"
         mkdir -p "$outdir"
 
@@ -383,10 +509,14 @@ rule checkm2:
         done=os.path.join(CHECKM2_DIR, "{sample}", "DONE.txt")
     threads: CHECKM2_THREADS
     resources:
-        mem_mb=32000
+        mem_mb=CHECKM2_MEM_MB
     shell:
         r"""
         set -euo pipefail
+        fail_log=$(realpath -m "{FAIL_LOG}")
+        mkdir -p "$(dirname "$fail_log")"
+        [ -f "$fail_log" ] || echo -e "sample\tstage\treason" > "$fail_log"
+        trap 'echo -e "{wildcards.sample}\tcheckm2\tcommand_failed" >> "$fail_log"' ERR
 
         sample="{wildcards.sample}"
         outdir="{CHECKM2_DIR}/{wildcards.sample}"
@@ -420,6 +550,7 @@ rule checkm2:
         set -e
 
         if [ $rc -ne 0 ]; then
+            echo -e "{wildcards.sample}\tcheckm2\tpredict_nonzero_$rc" >> "$fail_log"
             echo "ERROR: CheckM2 failed for $sample (exit code=$rc)" 1>&2
             echo "----- checkm2.log -----" 1>&2
             tail -n 80 "$logfile" 1>&2 || true
@@ -434,6 +565,7 @@ rule checkm2:
         fi
 
         if [ -z "$report_found" ]; then
+            echo -e "{wildcards.sample}\tcheckm2\treport_missing" >> "$fail_log"
             echo "ERROR: CheckM2 finished but no quality_report.tsv found for $sample" 1>&2
             echo "Files under tmpdir:" 1>&2
             find "$tmpdir" -maxdepth 4 -type f 1>&2 || true
@@ -464,12 +596,15 @@ rule coverage:
         done=os.path.join(COV_DIR, "{sample}", "DONE.txt")
     threads: COV_THREADS
     resources:
-        mem_mb=32000
+        mem_mb=COV_MEM_MB
     shell:
         r"""
         set -euo pipefail
+        fail_log=$(realpath -m "{FAIL_LOG}")
+        mkdir -p "$(dirname "$fail_log")"
+        [ -f "$fail_log" ] || echo -e "sample\tstage\treason" > "$fail_log"
+        trap 'echo -e "{wildcards.sample}\tcoverage\tcommand_failed" >> "$fail_log"' ERR
         outdir="{COV_DIR}/{wildcards.sample}"
-        rm -rf "$outdir"
         mkdir -p "$outdir"
 
         fq=$(realpath {input.fq})
@@ -499,10 +634,14 @@ rule bakta_annotate:
         done=os.path.join(BAKTA_DIR, "{sample}", "DONE.txt")
     threads: BAKTA_THREADS
     resources:
-        mem_mb=32000
+        mem_mb=BAKTA_MEM_MB
     shell:
         r"""
         set -euo pipefail
+        fail_log=$(realpath -m "{FAIL_LOG}")
+        mkdir -p "$(dirname "$fail_log")"
+        [ -f "$fail_log" ] || echo -e "sample\tstage\treason" > "$fail_log"
+        trap 'echo -e "{wildcards.sample}\tbakta\tcommand_failed" >> "$fail_log"' ERR
         sample="{wildcards.sample}"
         outdir="{BAKTA_DIR}/{wildcards.sample}"
 
@@ -527,15 +666,30 @@ rule bakta_annotate:
 # ----------------
 SUMMARY_XLSX = os.path.join(OUTDIR, "checkm2_coverage_summary.xlsx")
 
+def existing_summary_inputs(_wc=None):
+    deps = []
+    for sample in SAMPLES:
+        for p in [
+            os.path.join(CHECKM2_DIR, sample, "DONE.txt"),
+            os.path.join(COV_DIR, sample, "DONE.txt"),
+            os.path.join(BAKTA_DIR, sample, "DONE.txt"),
+            os.path.join(QUAST_DIR, sample, "report.txt"),
+            os.path.join(MEDAKA_DIR, f"{sample}_final_assembly.fasta"),
+        ]:
+            if os.path.exists(p):
+                deps.append(p)
+    return sorted(set(deps))
+
 rule make_checkm2_coverage_summary:
     input:
-        checkm2=expand(os.path.join(CHECKM2_DIR, "{sample}", "quality_report.tsv"), sample=SAMPLES),
-        cov=expand(os.path.join(COV_DIR, "{sample}", "{sample}_contig_mean_depth.tsv"), sample=SAMPLES)
+        existing_summary_inputs
+    params:
+        samples_json=lambda wc: json.dumps(SAMPLES)
     output:
         xlsx=SUMMARY_XLSX
     threads: 1
     resources:
-        mem_mb=4000
+        mem_mb=SUMMARY_MEM_MB
     shell:
         r"""
         set -euo pipefail
@@ -543,11 +697,20 @@ rule make_checkm2_coverage_summary:
         python - << 'PY'
 import os
 import glob
+import json
 import pandas as pd
+from pathlib import Path
 
 checkm2_dir = "{CHECKM2_DIR}"
 cov_dir = "{COV_DIR}"
+qc_dir = "{QC_DIR}"
+autocycler_dir = "{AUTOCYCLER_DIR}"
+medaka_dir = "{MEDAKA_DIR}"
+quast_dir = "{QUAST_DIR}"
+bakta_dir = "{BAKTA_DIR}"
+outdir_root = "{OUTDIR}"
 out_xlsx = "{output.xlsx}"
+samples = json.loads(r'''{params.samples_json}''')
 
 # -------------------------
 # 1) CheckM2 merge
@@ -593,15 +756,109 @@ for f in cov_files:
 coverage_summary = pd.DataFrame(cov_rows)
 
 # -------------------------
-# 3) Write Excel
+# 3) Per-sample run status
+# -------------------------
+status_rows = []
+for sample in samples:
+    status_rows.append({{
+        "sample": sample,
+        "qc_clean_fastq": os.path.exists(os.path.join(qc_dir, f"{{sample}}.clean.fastq.gz")),
+        "autocycler_fasta": os.path.exists(os.path.join(autocycler_dir, sample, "autocycler_out", "consensus_assembly.fasta")),
+        "autocycler_gfa": os.path.exists(os.path.join(autocycler_dir, sample, "autocycler_out", "consensus_assembly.gfa")),
+        "medaka_final_fasta": os.path.exists(os.path.join(medaka_dir, f"{{sample}}_final_assembly.fasta")),
+        "quast_report": os.path.exists(os.path.join(quast_dir, sample, "report.txt")),
+        "checkm2_report": os.path.exists(os.path.join(checkm2_dir, sample, "quality_report.tsv")),
+        "coverage_tsv": os.path.exists(os.path.join(cov_dir, sample, f"{{sample}}_contig_mean_depth.tsv")),
+        "bakta_done": os.path.exists(os.path.join(bakta_dir, sample, "DONE.txt")),
+    }})
+
+status_df = pd.DataFrame(status_rows)
+
+# -------------------------
+# 4) Autocycler helper job summary
+# -------------------------
+job_rows = []
+for sample in samples:
+    joblog = os.path.join(autocycler_dir, sample, "assemblies", "joblog.tsv")
+    if not os.path.exists(joblog):
+        job_rows.append({{
+            "sample": sample,
+            "joblog_found": False,
+            "total_jobs": 0,
+            "failed_jobs": 0,
+            "failed_commands": ""
+        }})
+        continue
+
+    try:
+        dfj = pd.read_csv(joblog, sep="\t")
+        if "Exitval" in dfj.columns:
+            failed = dfj[dfj["Exitval"] != 0]
+            failed_cmds = "; ".join(failed.get("Command", pd.Series(dtype=str)).astype(str).head(5).tolist())
+            job_rows.append({{
+                "sample": sample,
+                "joblog_found": True,
+                "total_jobs": int(dfj.shape[0]),
+                "failed_jobs": int(failed.shape[0]),
+                "failed_commands": failed_cmds
+            }})
+        else:
+            job_rows.append({{
+                "sample": sample,
+                "joblog_found": True,
+                "total_jobs": int(dfj.shape[0]),
+                "failed_jobs": None,
+                "failed_commands": "Exitval column not found"
+            }})
+    except Exception as e:
+        job_rows.append({{
+            "sample": sample,
+            "joblog_found": True,
+            "total_jobs": None,
+            "failed_jobs": None,
+            "failed_commands": f"parse_error: {{e}}"
+        }})
+
+autocycler_jobs_df = pd.DataFrame(job_rows)
+
+# -------------------------
+# 5) Bad FASTQ summary from prefilter
+# -------------------------
+bad_fastq_tsv = os.path.join(Path(outdir_root).parent, "0_bad_fastqs", "moved_bad_fastqs.tsv")
+if os.path.exists(bad_fastq_tsv):
+    try:
+        bad_fastq_df = pd.read_csv(bad_fastq_tsv, sep="\t")
+    except Exception:
+        bad_fastq_df = pd.DataFrame([{{"file_name": "parse_error", "failure_reason": bad_fastq_tsv}}])
+else:
+    bad_fastq_df = pd.DataFrame(columns=["file_name", "failure_reason"])
+
+# -------------------------
+# 6) Stage failure log
+# -------------------------
+fail_log_tsv = os.path.join(outdir_root, "0_failed_samples.tsv")
+if os.path.exists(fail_log_tsv):
+    try:
+        fail_log_df = pd.read_csv(fail_log_tsv, sep="\t")
+    except Exception:
+        fail_log_df = pd.DataFrame([{{"sample": "parse_error", "stage": "parse_error", "reason": fail_log_tsv}}])
+else:
+    fail_log_df = pd.DataFrame(columns=["sample", "stage", "reason"])
+
+# -------------------------
+# 7) Write Excel
 # -------------------------
 outdir = os.path.dirname(out_xlsx)
 if outdir:
     os.makedirs(outdir, exist_ok=True)
 
-with pd.ExcelWriter(out_xlsx, engine="openpyxl") as writer:
+with pd.ExcelWriter(out_xlsx) as writer:
     checkm2_all.to_excel(writer, sheet_name="CheckM2", index=False)
     coverage_summary.to_excel(writer, sheet_name="Coverage", index=False)
+    status_df.to_excel(writer, sheet_name="RunStatus", index=False)
+    autocycler_jobs_df.to_excel(writer, sheet_name="AutocyclerJobs", index=False)
+    bad_fastq_df.to_excel(writer, sheet_name="BadFASTQ", index=False)
+    fail_log_df.to_excel(writer, sheet_name="FailLog", index=False)
 
 print("[OK] wrote:", out_xlsx)
 PY

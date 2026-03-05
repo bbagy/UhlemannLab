@@ -3,7 +3,7 @@ FROM mambaorg/micromamba:1.5.8
 USER root
 
 # -----------------------------
-# 기본 시스템 패키지
+# Base system packages
 # -----------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -30,12 +30,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # -----------------------------
-# micromamba 환경 생성
+# Env 1: main workflow tools (python 3.11)
 # -----------------------------
-# 하나의 env에 전부 넣고 PATH 기반으로 통합
 RUN micromamba create -y -n wgs \
     -c conda-forge -c bioconda \
-    python=3.10 \
+    python=3.11 \
     snakemake=8.25.3 \
     fastp \
     bowtie2 \
@@ -43,7 +42,6 @@ RUN micromamba create -y -n wgs \
     bcftools \
     kraken2 \
     multiqc \
-    srst2 \
     blast \
     spades \
     r-base=4.3 \
@@ -56,23 +54,50 @@ RUN micromamba create -y -n wgs \
     && micromamba clean -a -y
 
 # -----------------------------
-# PATH 활성화
+# Env 2: SRST2 tools + pip-installed SRST2 (python 3.11)
+# -----------------------------
+RUN micromamba create -y -n srst2 \
+    -c conda-forge -c bioconda \
+    python=3.11 \
+    bowtie2 \
+    samtools \
+    bcftools \
+    && micromamba clean -a -y
+RUN micromamba run -n srst2 pip install --no-cache-dir git+https://github.com/katholt/srst2.git
+
+# -----------------------------
+# Env 3: TETyper_modi dependencies (python 3.9)
+# -----------------------------
+RUN micromamba create -y -n tetyper \
+    -c conda-forge -c bioconda \
+    python=3.9 \
+    spades \
+    samtools \
+    bcftools \
+    blast \
+    biopython \
+    pysam \
+    pyvcf3 \
+    && micromamba clean -a -y
+
+# -----------------------------
+# Default PATH = wgs
 # -----------------------------
 ENV PATH=/opt/conda/envs/wgs/bin:$PATH
 ENV CONDA_DEFAULT_ENV=wgs
 
 # -----------------------------
-# TETyper 설치
-# (pip로 설치하거나 git clone 방식 가능)
+# Bundle local TETyper patched script
 # -----------------------------
-RUN pip install --no-cache-dir TETyper
+COPY TETyper_modi.py /usr/local/bin/TETyper_modi.py
+RUN chmod 755 /usr/local/bin/TETyper_modi.py
 
 # -----------------------------
-# 작업 디렉토리
+# Working directory
 # -----------------------------
 WORKDIR /work
 
 # -----------------------------
-# 기본 실행: bash
+# Default command: bash
 # -----------------------------
 CMD ["bash"]

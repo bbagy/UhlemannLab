@@ -60,12 +60,15 @@ Go_PFsnake.sh \
 | `-i` | - | Input FASTQ directory |
 | `-o` | - | Output directory |
 | `-d` | - | Reference FASTA |
+| `-s` | script directory | Optional Snakefile directory override |
 | `-g` | (none) | GFF for gene-CNV/drug gene summary |
 | `-c` | `8` | Snakemake cores |
 | `-t` | `4` | Thread setting for selected rules |
 | `-p` | `2` | Read mode (`2` PE, `1` SE) |
 | `-m` | `pf-snake:1.0` | Docker image |
 | `-n` | off | Dry-run (`snakemake --dry-run`) |
+| `-K` | off | Keep going on independent job failures (`--keep-going`) |
+| `-P` | `1` | Show periodic progress snapshots in current terminal (`1` on, `0` off) |
 
 ---
 
@@ -101,6 +104,16 @@ OUTDIR/
   YYYYMMDD_PF_QC_report.xlsx
   YYYYMMDD_PF_variant_summary.xlsx
 ```
+
+---
+
+## Notes
+
+- `Go_PFsnake.sh` runs input prefilter before Snakemake:
+  - gzip integrity check (`gzip -t`)
+  - bad FASTQ moved to sibling `0_bad_fastqs/`
+  - bad log: `0_bad_fastqs/moved_bad_fastqs.tsv`
+  - when `-p 2`, unmatched R1/R2 files are also moved to bad folder
 
 ---
 

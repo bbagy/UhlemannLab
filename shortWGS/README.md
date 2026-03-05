@@ -4,59 +4,70 @@
 ![Workflow](https://img.shields.io/badge/Workflow-Snakemake-039be5)
 ![Container](https://img.shields.io/badge/Runtime-Docker-0db7ed)
 
-Bacterial Illumina WGS workflow for QC, species inference, typing, resistance/plasmid screening, and summary reporting.
+Bacterial Illumina WGS workflow for QC, species inference, genotyping, and final summary reporting.
 
----
+## Current Entrypoints
+
+- Wrapper: `Go_shortWGS.sh`
+- Snakefile: `Go_shortWGS_V9_docker.smk`
 
 ## Pipeline
 
 ```mermaid
 flowchart LR
-  A[FASTQ] --> B[fastp]
-  B --> C[Kraken2 species]
-  C --> D[SRST2 MLST/ARG/Plasmid]
-  D --> E[TETyper]
-  E --> F[MultiQC + summary tables]
-  F --> G[summary_report.html]
+  A[Paired FASTQ] --> B[Prefilter gzip + pair check]
+  B --> C[fastp]
+  C --> D[Kraken2 species]
+  D --> E[SRST2: MLST/ARG/Plasmid]
+  E --> F[TETyper_modi]
+  F --> G[MultiQC + CSV summary]
+  G --> H[summary_report.html]
 ```
-
----
 
 ## Requirements
 
 - Docker
-- Linux environment
-- Paired FASTQ files (`*.fastq.gz`)
-- WGS DB root (`WGS_DB2`-style)
+- Linux shell
+- Paired FASTQ files
+- WGS DB root (`WGS_DB2` style)
 - Kraken2 DB
-- Rmd template at:
-  - `/home/uhlemann/heekuk_path/GoWGS/scripts/20251007_Summary_WGS_tem_v3.Rmd`
-
----
+- GoWGS host directory mounted by wrapper (`-r`) for the Rmd template path
 
 ## Build
 
+Build from `shortWGS` directory (Docker context must include `TETyper_modi.py`).
+
 ```bash
-docker build -t shortwgs:1.0 .
+cd shortWGS
+docker build --network=host -t shortwgs:1.0 .
 ```
 
----
+If `COPY TETyper_modi.py` fails, ensure this file exists in the same directory as Dockerfile.
+
+## Docker Tool Layout
+
+The image uses multi-environment setup:
+
+- `wgs`: Snakemake, fastp, kraken2, R, multiqc, general tools
+- `srst2`: `srst2` + required mapping tools
+- `tetyper`: `TETyper_modi.py` dependencies (`spades`, `samtools`, `bcftools`, `blastn`, python libs)
+
+The Snakefile runs tools via `micromamba run -n <env> ...`.
 
 ## Quick Start
 
 ```bash
-Go_shortWGS.sh \
+./shortWGS/Go_shortWGS.sh \
   -i /path/to/fastq \
-  -o shortwgs_out \
+  -o /path/to/output \
   -d /path/to/WGS_DB2 \
   -k /path/to/kraken2_db \
   -r /path/to/GoWGS \
-  -c 8
+  -c 8 \
+  -K
 ```
 
----
-
-## Options
+## Options (`Go_shortWGS.sh`)
 
 | Flag | Default | Description |
 |---|---:|---|
@@ -64,16 +75,17 @@ Go_shortWGS.sh \
 | `-o` | - | Output directory |
 | `-d` | - | WGS DB root (`WGS_DB2`) |
 | `-k` | - | Kraken2 DB directory |
-| `-r` | - | Host `GoWGS` directory for fixed Rmd path |
+| `-r` | - | Host GoWGS directory |
+| `-s` | script directory | Optional Snakefile directory override |
 | `-c` | `8` | Snakemake cores |
-| `-m` | `shortwgs:1.0` | Docker image |
-| `-n` | off | Dry-run (`snakemake --dry-run`) |
+| `-m` | `shortwgs:1.0` | Docker image name |
+| `-n` | off | Dry-run (`--dry-run`) |
+| `-K` | off | Keep going (`--keep-going`) |
+| `-P` | `1` | Progress monitor (`1` on, `0` off) |
 
----
+## Input Layout
 
-## Inputs
-
-FASTQ naming supported:
+Supported FASTQ naming:
 
 - `<sample>_R1_001.fastq.gz` / `<sample>_R2_001.fastq.gz`
 - `<sample>_R1.fastq.gz` / `<sample>_R2.fastq.gz`
@@ -83,24 +95,22 @@ Expected DB layout:
 
 ```text
 WGS_DB2/
-  CARD/                 (*.fasta)
-  PlasmidFinder/        (*.fasta)
+  CARD/                    (*.fasta)
+  PlasmidFinder/           (*.fasta)
   MLST/
-    a_baumannii/
     e_coli/
     k_pneumoniae/
     ...
   tetyper/
+    Tn4401b-1.fasta
     struct_profiles.txt
     snp_profiles.txt
 ```
 
----
-
-## Outputs
+## Output Layout
 
 ```text
-shortwgs_out/
+OUT/
   1_fastp_out/
   2a_kraken2/
   2_ST_srst2_out/
@@ -108,9 +118,11 @@ shortwgs_out/
   4_Plasmid_srst2_out/
   5_TETyper/
   multiqc_report.html
+  multiqc.done.txt
   summary_master.csv
   summary_report.html
   skip.log
+  shortwgs.log
 ```
 
 Key files:
@@ -120,7 +132,52 @@ Key files:
 - `summary_master.csv`
 - `summary_report.html`
 
----
+Prefilter artifacts (sibling of input FASTQ dir):
+
+```text
+0_bad_fastqs/
+  DONE.txt
+  moved_bad_fastqs.tsv
+```
+
+## Operational Notes
+
+- Wrapper prefilter runs before Snakemake:
+  - `gzip -t` integrity check
+  - R1/R2 pairing validation
+  - bad files moved out of input directory
+- Progress is printed only when status changes.
+- Lock errors are auto-handled (`--unlock` then retry).
+- `INT/TERM` interrupt handling is enabled in wrapper.
+
+## Common Runs
+
+Dry-run:
+
+```bash
+./shortWGS/Go_shortWGS.sh -i IN -o OUT -d DB -k KRAKEN -r GOWGS -n
+```
+
+Production run:
+
+```bash
+./shortWGS/Go_shortWGS.sh -i IN -o OUT -d DB -k KRAKEN -r GOWGS -K
+```
+
+Use custom image tag:
+
+```bash
+./shortWGS/Go_shortWGS.sh -i IN -o OUT -d DB -k KRAKEN -r GOWGS -m shortwgs
+```
+
+## Troubleshooting
+
+- `COPY TETyper_modi.py` failed during build
+  - ensure `shortWGS/TETyper_modi.py` exists in Docker build context
+- `image not found shortwgs:1.0`
+  - build with tag `shortwgs:1.0` or run wrapper with `-m <tag>`
+- no summary report generated
+  - check mounted `-r` path and Rmd template path in Snakefile
 
 ## Maintainer
 

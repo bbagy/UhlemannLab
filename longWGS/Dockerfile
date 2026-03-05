@@ -29,9 +29,14 @@ RUN micromamba create -y -n longwgs -c conda-forge -c bioconda \
       racon raven-assembler \
       porechop_abi nanofilt \
       medaka=2.1.1 \
-      flye miniasm plassembler autocycler \
+      flye miniasm minipolish plassembler autocycler \
       bakta=1.12.0 blast=2.17.* \
     && micromamba clean -a -y
+
+# Fail the image build early if key helper tools are not available.
+RUN micromamba run -n longwgs plassembler --help >/dev/null \
+ && micromamba run -n longwgs minipolish --help >/dev/null
+ 
 
 # -----------------------------
 # Env 2: checkm2 (python 3.12)

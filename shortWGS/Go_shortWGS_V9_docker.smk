@@ -31,6 +31,8 @@ TETYPE_REF_DIR  = f"{DB_DIR}/tetyper"
 STRUCT_PROF = f"{TETYPE_REF_DIR}/struct_profiles.txt"
 SNP_PROF    = f"{TETYPE_REF_DIR}/snp_profiles.txt"
 SHOW_REGION = config.get("show_region", "7202-8083")
+SRST2_ENV   = config.get("srst2_env", "srst2")
+SRST2_CMD   = config.get("srst2_cmd", f"micromamba run -n {SRST2_ENV} srst2")
 
 # Global skip log
 SKIP_LOG = f"{OUTPUT_DIR}/skip.log"
@@ -262,6 +264,7 @@ rule args_srst2:
         done = f"{OUTPUT_DIR}/3_ARGs_srst2_out/args_srst2.done.txt"
     params:
         outprefix      = f"{OUTPUT_DIR}/3_ARGs_srst2_out/__genes__CARD",
+        srst2_cmd      = SRST2_CMD,
         # 결과 파일: 접미사 유무 모두 허용
         genes_exact    = f"{OUTPUT_DIR}/3_ARGs_srst2_out/__genes__CARD__genes__CARD__results.txt",
         genes_wild     = f"{OUTPUT_DIR}/3_ARGs_srst2_out/__genes__CARD__genes__CARD_*__results.txt",
@@ -272,7 +275,7 @@ rule args_srst2:
         set -euo pipefail
         mkdir -p "{OUTPUT_DIR}/3_ARGs_srst2_out"
 
-        srst2 --threads 6 --input_pe {input.r1} {input.r2} \
+        {params.srst2_cmd} --threads 6 --input_pe {input.r1} {input.r2} \
             --forward .clean.R1 --reverse .clean.R2 \
             --output "{params.outprefix}" --log --gene_db "{input.gene_db}" || true
 
@@ -302,6 +305,7 @@ rule plas_srst2:
         done = f"{OUTPUT_DIR}/4_Plasmid_srst2_out/plasmid_srst2.done.txt"
     params:
         outprefix      = f"{OUTPUT_DIR}/4_Plasmid_srst2_out/__genes__PlasmidFinder",
+        srst2_cmd      = SRST2_CMD,
         genes_exact    = f"{OUTPUT_DIR}/4_Plasmid_srst2_out/__genes__PlasmidFinder__genes__PlasmidFinder__results.txt",
         genes_wild     = f"{OUTPUT_DIR}/4_Plasmid_srst2_out/__genes__PlasmidFinder__genes__PlasmidFinder_*__results.txt",
         full_exact     = f"{OUTPUT_DIR}/4_Plasmid_srst2_out/__genes__PlasmidFinder__fullgenes__PlasmidFinder__results.txt",
@@ -311,7 +315,7 @@ rule plas_srst2:
         set -euo pipefail
         mkdir -p "{OUTPUT_DIR}/4_Plasmid_srst2_out"
 
-        srst2 --threads 6 --input_pe {input.r1} {input.r2} \
+        {params.srst2_cmd} --threads 6 --input_pe {input.r1} {input.r2} \
             --forward .clean.R1 --reverse .clean.R2 \
             --output "{params.outprefix}" --log --gene_db "{input.gene_db}" || true
 
@@ -449,7 +453,7 @@ rule mlst_srst2_per_sample:
             )
 
             cmd = (
-                "srst2 "
+                f"{SRST2_CMD} "
                 f"--input_pe {input.r1} {input.r2} "
                 f"--mlst_db {db_fa} "
                 f"--mlst_definitions {prof_path} "
@@ -603,11 +607,7 @@ rule make_mlst_table:
 
 # ---------- 3) TETyper ----------
 TETY_ENV = config.get("tetyper_env", "tetyper")
-TETY_CMD = config.get("tetyper_cmd", f"conda run -n {TETY_ENV} python /home/uhlemann/.local/bin/TETyper.py")
-
-# ---------- 3) TETyper ----------
-TETY_ENV = config.get("tetyper_env", "tetyper")
-TETY_CMD = config.get("tetyper_cmd", f"conda run -n {TETY_ENV} python /home/uhlemann/.local/bin/TETyper.py")
+TETY_CMD = config.get("tetyper_cmd", f"micromamba run -n {TETY_ENV} python /usr/local/bin/TETyper_modi.py")
 
 rule tetyper:
     input:
@@ -710,11 +710,11 @@ rule tetyper:
         set -euo pipefail
         mkdir -p "{OUTPUT_DIR}/5_TETyper" "{params.tmpdir}"
 
-        SPADES_BIN_DIR=$(conda run -n "{params.tety_env}" bash -lc 'dirname "$(which spades.py)"' || true)
-        SAMTOOLS_BIN_DIR=$(conda run -n "{params.tety_env}" bash -lc 'dirname "$(which samtools)"' || true)
-        BCFTOOLS_BIN_DIR=$(conda run -n "{params.tety_env}" bash -lc 'dirname "$(which bcftools)"' || true)
-        BLAST_BIN_DIR=$(conda run -n "{params.tety_env}" bash -lc 'dirname "$(which blastn)"' || true)
-        PY_BIN=$(conda run -n "{params.tety_env}" bash -lc 'which python' || true)
+        SPADES_BIN_DIR=$(micromamba run -n "{params.tety_env}" bash -lc 'dirname "$(which spades.py)"' || true)
+        SAMTOOLS_BIN_DIR=$(micromamba run -n "{params.tety_env}" bash -lc 'dirname "$(which samtools)"' || true)
+        BCFTOOLS_BIN_DIR=$(micromamba run -n "{params.tety_env}" bash -lc 'dirname "$(which bcftools)"' || true)
+        BLAST_BIN_DIR=$(micromamba run -n "{params.tety_env}" bash -lc 'dirname "$(which blastn)"' || true)
+        PY_BIN=$(micromamba run -n "{params.tety_env}" bash -lc 'which python' || true)
 
         export PATH="$SPADES_BIN_DIR:$SAMTOOLS_BIN_DIR:$BCFTOOLS_BIN_DIR:$BLAST_BIN_DIR:$PATH"
         export TMPDIR="{params.tmpdir}"

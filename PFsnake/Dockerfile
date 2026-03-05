@@ -4,10 +4,10 @@ FROM mambaorg/micromamba:1.5.10
 LABEL author="Heekuk Park"
 LABEL project="PF-Snake"
 
-# 환경 이름
+# Environment name
 ENV ENV_NAME=pf-snake
 
-# bio tools 설치
+# Install bioinformatics tools
 RUN micromamba create -y -n ${ENV_NAME} \
     -c conda-forge -c bioconda \
     python=3.10 \
@@ -32,7 +32,7 @@ RUN micromamba create -y -n ${ENV_NAME} \
     openpyxl \
     && micromamba clean --all --yes
 
-# 기본 shell에서 env 활성화
+# Activate env in the default shell
 ENV PATH=/opt/conda/envs/${ENV_NAME}/bin:$PATH
 
 WORKDIR /work
