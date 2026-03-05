@@ -40,6 +40,15 @@ docker build -t rnake:latest .</code></pre></div>
   -a /path/to/annotation.gff \
   -K</code></pre></div>
 
+      <h2>Pipeline Flow</h2>
+      <div class="flow">
+        <span class="node">Prefilter</span><span class="arrow">→</span>
+        <span class="node">Trim</span><span class="arrow">→</span>
+        <span class="node">Bowtie2 Mapping</span><span class="arrow">→</span>
+        <span class="node">Count Matrix</span><span class="arrow">→</span>
+        <span class="node">Merged Table</span>
+      </div>
+
       <h2>Main Outputs</h2>
       <div class="card"><pre><code>&lt;PROJECT&gt;_RNAseq_output/
   1_trim/

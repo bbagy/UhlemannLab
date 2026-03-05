@@ -41,6 +41,16 @@ docker build --network=host -t shortwgs:1.0 .</code></pre></div>
   -r /path/to/GoWGS \
   -K</code></pre></div>
 
+      <h2>Pipeline Flow</h2>
+      <div class="flow">
+        <span class="node">Prefilter</span><span class="arrow">→</span>
+        <span class="node">fastp</span><span class="arrow">→</span>
+        <span class="node">Kraken2</span><span class="arrow">→</span>
+        <span class="node">SRST2 (MLST/ARG/Plasmid)</span><span class="arrow">→</span>
+        <span class="node">TETyper</span><span class="arrow">→</span>
+        <span class="node">MultiQC + Summary</span>
+      </div>
+
       <h2>Options</h2>
       <table>
         <tr><th>Flag</th><th>Description</th></tr>

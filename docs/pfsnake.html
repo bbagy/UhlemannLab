@@ -40,6 +40,17 @@ docker build -t pf-snake:1.0 .</code></pre></div>
   -p 2 \
   -K</code></pre></div>
 
+      <h2>Pipeline Flow</h2>
+      <div class="flow">
+        <span class="node">Prefilter</span><span class="arrow">→</span>
+        <span class="node">fastp</span><span class="arrow">→</span>
+        <span class="node">BWA / BAM QC</span><span class="arrow">→</span>
+        <span class="node">GATK / Variants</span><span class="arrow">→</span>
+        <span class="node">CNV</span><span class="arrow">→</span>
+        <span class="node">Mixed Infection</span><span class="arrow">→</span>
+        <span class="node">Drug Resistance</span>
+      </div>
+
       <h2>Main Outputs</h2>
       <div class="card"><pre><code>1_QC/ 2_bwa/ 3_bam_qc/ 4_gatk_out/
 6_cnv/ 7_mixed_infection/ 8_recomb_explore/

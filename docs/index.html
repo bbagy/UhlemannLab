@@ -39,15 +39,28 @@
         </p>
       </div>
 
-      <div class="card">
-        <h2>Pipeline Summary</h2>
-        <ul>
-          <li><strong>longWGS</strong>: ONT assembly, polishing, QC, coverage, annotation</li>
-          <li><strong>shortWGS</strong>: Illumina typing (MLST/ARG/Plasmid/TETyper) + summary</li>
-          <li><strong>PFsnake</strong>: <em>P. falciparum</em> variant/CNV/drug summary workflow</li>
-          <li><strong>RNake</strong>: bacterial RNA-seq processing and count-table generation</li>
-          <li><strong>TnSeq_ONT</strong>: ONT flank extraction and clustering</li>
-        </ul>
+      <h2>Pipeline Summary</h2>
+      <div class="cards-grid">
+        <section class="pipeline-card">
+          <h3>longWGS</h3>
+          <p>ONT assembly, polishing, QC, coverage, and annotation.</p>
+        </section>
+        <section class="pipeline-card">
+          <h3>shortWGS</h3>
+          <p>Illumina typing with MLST/ARG/Plasmid/TETyper and report outputs.</p>
+        </section>
+        <section class="pipeline-card">
+          <h3>PFsnake</h3>
+          <p><em>P. falciparum</em> variant/CNV/drug summary pipeline.</p>
+        </section>
+        <section class="pipeline-card">
+          <h3>RNake</h3>
+          <p>Bacterial RNA-seq processing and count-table generation.</p>
+        </section>
+        <section class="pipeline-card">
+          <h3>TnSeq_ONT</h3>
+          <p>ONT flank extraction and clustering workflow.</p>
+        </section>
       </div>
 
       <div class="card">

@@ -39,6 +39,17 @@ docker build -t longwgs .</code></pre></div>
   -d /path/to/db \
   -K</code></pre></div>
 
+      <h2>Pipeline Flow</h2>
+      <div class="flow">
+        <span class="node">Prefilter</span><span class="arrow">→</span>
+        <span class="node">QC / Porechop</span><span class="arrow">→</span>
+        <span class="node">Autocycler</span><span class="arrow">→</span>
+        <span class="node">Medaka</span><span class="arrow">→</span>
+        <span class="node">QUAST + CheckM2</span><span class="arrow">→</span>
+        <span class="node">Coverage</span><span class="arrow">→</span>
+        <span class="node">Bakta</span>
+      </div>
+
       <h2>Options</h2>
       <table>
         <tr><th>Flag</th><th>Description</th></tr>
