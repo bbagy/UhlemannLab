@@ -22,7 +22,8 @@ Each pipeline is self-contained with its own `Dockerfile`, workflow, wrapper scr
 ## Documentation
 
 - Open full documentation here:
-  - **https://<your-project>.readthedocs.io/en/latest/**
+  - [Documentation Portal](docs/index.html)
+  - (Read the Docs URL will be added after first successful RTD build)
 
 ---
 
