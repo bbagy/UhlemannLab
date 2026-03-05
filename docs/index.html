@@ -26,10 +26,7 @@
     <main class="main">
       <span class="badge">Docker-first / Reproducible</span>
       <h1>Pipeline Documentation Portal</h1>
-      <p>
-        This portal summarizes each pipeline and provides direct usage pages.  
-        Use the left menu to switch tools quickly.
-      </p>
+      <p>Practical runbook for containerized pipeline operation in real lab workflows.</p>
 
       <div class="card">
         <h2>Design Goal</h2>
@@ -41,23 +38,29 @@
 
       <h2>Pipeline Summary</h2>
       <div class="cards-grid">
-        <section class="pipeline-card">
+        <section class="pipeline-card featured">
+          <span class="card-badge live">Available now</span>
           <h3>longWGS</h3>
           <p>ONT assembly, polishing, QC, coverage, and annotation.</p>
+          <div class="longwgs-visual" aria-hidden="true"></div>
         </section>
         <section class="pipeline-card">
+          <span class="card-badge">In testing</span>
           <h3>shortWGS</h3>
           <p>Illumina typing with MLST/ARG/Plasmid/TETyper and report outputs.</p>
         </section>
         <section class="pipeline-card">
+          <span class="card-badge">In testing</span>
           <h3>PFsnake</h3>
           <p><em>P. falciparum</em> variant/CNV/drug summary pipeline.</p>
         </section>
         <section class="pipeline-card">
+          <span class="card-badge">In testing</span>
           <h3>RNake</h3>
           <p>Bacterial RNA-seq processing and count-table generation.</p>
         </section>
         <section class="pipeline-card">
+          <span class="card-badge">In testing</span>
           <h3>TnSeq_ONT</h3>
           <p>ONT flank extraction and clustering workflow.</p>
         </section>

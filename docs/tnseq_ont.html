@@ -34,6 +34,12 @@
       <h2>Run</h2>
       <div class="card"><pre><code>python TnSeq_ONT/Go_search_tnseq_flank.py --help</code></pre></div>
 
+      <h2>Real Example</h2>
+      <div class="card"><pre><code>python TnSeq_ONT/Go_search_tnseq_flank.py \
+  --input reads.fastq.gz \
+  --anchor Tn_anchor.fa \
+  --outdir tnseq_out</code></pre></div>
+
       <h2>Purpose</h2>
       <p>Use this workflow to extract transposon flanks from ONT reads and cluster insertion-related signals.</p>
 
@@ -45,6 +51,22 @@
         <span class="node">Clustering</span><span class="arrow">→</span>
         <span class="node">Summary Output</span>
       </div>
+
+      <h2>Options</h2>
+      <table>
+        <tr><th>Flag</th><th>Description</th></tr>
+        <tr><td><code>--input</code></td><td>Input read file</td></tr>
+        <tr><td><code>--anchor</code></td><td>Anchor sequence file</td></tr>
+        <tr><td><code>--outdir</code></td><td>Output directory</td></tr>
+      </table>
+
+      <h2>Expected Input</h2>
+      <div class="card"><pre><code>ONT read file (FASTQ/FASTQ.GZ)
+Anchor sequence FASTA</code></pre></div>
+
+      <h2>Main Outputs</h2>
+      <div class="card"><pre><code>Extracted flank sequences
+Clustered flank summary tables/files</code></pre></div>
     </main>
   </div>
 </body>

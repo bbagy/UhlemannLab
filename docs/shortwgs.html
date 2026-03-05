@@ -44,6 +44,16 @@ docker build --network=host -t shortwgs:1.0 .</code></pre></div>
   -r /path/to/GoWGS \
   -K</code></pre></div>
 
+      <h2>Real Example</h2>
+      <div class="card"><pre><code>Go_shortWGS.sh \
+  -i 1_fastqs \
+  -o 2_shortWGS_out \
+  -d /media/uhlemann/Core3_V2/DB/WGS_DB2 \
+  -k /media/uhlemann/Core3_V2/DB/kraken2_db \
+  -r /home/uhlemann/heekuk_path/GoWGS \
+  -c 8 \
+  -K</code></pre></div>
+
       <h2>Pipeline Flow</h2>
       <div class="flow">
         <span class="node">Prefilter</span><span class="arrow">→</span>

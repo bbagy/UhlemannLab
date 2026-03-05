@@ -160,6 +160,49 @@ p, li {
   font-size: 1.02rem;
 }
 
+.card-badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 0.74rem;
+  border: 1px solid #cfd6cc;
+  color: #50606a;
+  background: #f4f6f2;
+  margin-bottom: 8px;
+}
+
+.pipeline-card.featured {
+  border: 2px solid #2b8f6b;
+  background:
+    radial-gradient(circle at 92% 12%, #d9f3e7 0%, transparent 42%),
+    linear-gradient(180deg, #f4fff9 0%, #eefaf4 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.pipeline-card.featured h3 {
+  color: #14583f;
+}
+
+.card-badge.live {
+  border-color: #2b8f6b;
+  color: #0f5a3c;
+  background: #e8f8ef;
+  font-weight: 600;
+}
+
+.longwgs-visual {
+  margin-top: 10px;
+  border: 1px solid #b7dcca;
+  border-radius: 10px;
+  height: 68px;
+  background:
+    linear-gradient(90deg, #8cc9ad 0 8%, transparent 8% 12%, #8cc9ad 12% 20%, transparent 20% 24%, #8cc9ad 24% 32%, transparent 32% 100%),
+    radial-gradient(circle at 78% 40%, #9fd8be 0 18%, transparent 19%),
+    radial-gradient(circle at 88% 60%, #7fbf9f 0 11%, transparent 12%),
+    linear-gradient(120deg, #f3fff7 0%, #e6f5ec 100%);
+}
+
 .flow {
   display: flex;
   flex-wrap: wrap;

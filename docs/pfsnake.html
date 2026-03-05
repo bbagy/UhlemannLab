@@ -43,6 +43,14 @@ docker build -t pf-snake:1.0 .</code></pre></div>
   -p 2 \
   -K</code></pre></div>
 
+      <h2>Real Example</h2>
+      <div class="card"><pre><code>Go_PFsnake.sh \
+  -i 1_fastqs \
+  -o 2_pfsnake_out \
+  -d /media/uhlemann/Core3_V2/REF/pf_ref.fasta \
+  -p 2 \
+  -K</code></pre></div>
+
       <h2>Pipeline Flow</h2>
       <div class="flow">
         <span class="node">Prefilter</span><span class="arrow">→</span>
@@ -53,6 +61,20 @@ docker build -t pf-snake:1.0 .</code></pre></div>
         <span class="node">Mixed Infection</span><span class="arrow">→</span>
         <span class="node">Drug Resistance</span>
       </div>
+
+      <h2>Options</h2>
+      <table>
+        <tr><th>Flag</th><th>Description</th></tr>
+        <tr><td><code>-n</code></td><td>Dry-run</td></tr>
+        <tr><td><code>-K</code></td><td>Keep-going</td></tr>
+        <tr><td><code>-p 1|2</code></td><td>Single-end / paired-end mode</td></tr>
+        <tr><td><code>-c</code></td><td>Snakemake cores</td></tr>
+      </table>
+
+      <h2>Expected Input</h2>
+      <div class="card"><pre><code>FASTQ directory
+Reference FASTA
+Optional GFF</code></pre></div>
 
       <h2>Main Outputs</h2>
       <div class="card"><pre><code>1_QC/ 2_bwa/ 3_bam_qc/ 4_gatk_out/
