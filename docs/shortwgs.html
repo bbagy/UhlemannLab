@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>shortWGS Usage</title>
+  <style>
+    body { font-family: "Segoe UI", sans-serif; margin: 0; background: #f7f8f6; color: #18232e; }
+    main { max-width: 900px; margin: 0 auto; padding: 28px 18px 40px; }
+    a { color: #165f8e; text-decoration: none; } a:hover { text-decoration: underline; }
+    h1 { margin: 0 0 12px; } h2 { margin-top: 24px; }
+    pre { background: #fff; border: 1px solid #d9dfd3; border-radius: 10px; padding: 12px; overflow-x: auto; }
+    code { font-family: ui-monospace, Menlo, Consolas, monospace; }
+  </style>
+</head>
+<body>
+<main>
+  <p><a href="./">← Back to Portal</a></p>
+  <h1>shortWGS</h1>
+  <p>Illumina bacterial typing workflow (Kraken2, SRST2, TETyper, summary report).</p>
+  <h2>Build</h2>
+  <pre><code>cd shortWGS
+docker build --network=host -t shortwgs:1.0 .</code></pre>
+  <h2>Run</h2>
+  <pre><code>./shortWGS/Go_shortWGS.sh \
+  -i /path/to/fastq \
+  -o /path/to/output \
+  -d /path/to/WGS_DB2 \
+  -k /path/to/kraken2_db \
+  -r /path/to/GoWGS \
+  -K</code></pre>
+  <h2>Useful Options</h2>
+  <pre><code>-n  dry-run
+-K  keep-going
+-c  cores
+-m  custom docker image tag</code></pre>
+</main>
+</body>
+</html>
+
