@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Current Workstations</title>
+  <link rel="stylesheet" href="styles.css?v=20260305-8">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">UhlemannLab Pipelines</div>
+      <nav class="nav">
+        <a href="./">Home</a>
+        <a class="active" href="workstations.html">Current Workstations</a>
+        <a href="longwgs.html">longWGS</a>
+        <a href="shortwgs.html">shortWGS</a>
+        <a href="pfsnake.html">PFsnake</a>
+        <a href="rnake.html">RNake</a>
+        <a href="tnseq_ont.html">TnSeq_ONT</a>
+      </nav>
+      <div class="sidebar-foot">
+        <a class="repo-link" href="https://github.com/bbagy/UhlemannLab" target="_blank" rel="noopener noreferrer">Open bbagy GitHub</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <span class="badge">Infrastructure</span>
+      <h1>Current Workstations</h1>
+      <p>Live hardware snapshots for the current lab compute nodes.</p>
+
+      <div class="workstation-grid">
+        <section class="workstation-card">
+          <div class="ws-head">
+            <h2>Nook</h2>
+            <span class="ws-loc">Lowy Lab</span>
+          </div>
+          <div class="ws-visual ws-nook" aria-hidden="true"></div>
+          <table>
+            <tr><th>Host</th><td>nook</td></tr>
+            <tr><th>OS</th><td>Ubuntu 22.04.4 LTS</td></tr>
+            <tr><th>CPU</th><td>Xeon Silver 4110, 16 vCPU</td></tr>
+            <tr><th>RAM</th><td>125 GiB (119 GiB available)</td></tr>
+            <tr><th>Storage</th><td>Root 912G (632G free), data up to 21T</td></tr>
+            <tr><th>Public IP</th><td>156.145.55.228</td></tr>
+          </table>
+        </section>
+
+        <section class="workstation-card">
+          <div class="ws-head">
+            <h2>Core2</h2>
+            <span class="ws-loc">Dental Lab</span>
+          </div>
+          <div class="ws-visual ws-core2" aria-hidden="true"></div>
+          <table>
+            <tr><th>Host</th><td>uhlemann-Precision-7920-Tower</td></tr>
+            <tr><th>OS</th><td>Ubuntu 20.04.6 LTS</td></tr>
+            <tr><th>CPU</th><td>Xeon Silver 4210, 20 vCPU</td></tr>
+            <tr><th>RAM</th><td>155 GiB (152 GiB available)</td></tr>
+            <tr><th>Storage</th><td>Root 747G (42G free), data up to 20T</td></tr>
+            <tr><th>Public IP</th><td>156.145.138.130</td></tr>
+          </table>
+        </section>
+
+        <section class="workstation-card">
+          <div class="ws-head">
+            <h2>Core3</h2>
+            <span class="ws-loc">Core 3</span>
+          </div>
+          <div class="ws-visual ws-core3" aria-hidden="true"></div>
+          <table>
+            <tr><th>Host</th><td>uhlemann-Precision-5820-Tower</td></tr>
+            <tr><th>OS</th><td>Ubuntu 24.04.3 LTS</td></tr>
+            <tr><th>CPU</th><td>Xeon W-2133, 12 vCPU</td></tr>
+            <tr><th>RAM</th><td>46 GiB (44 GiB available)</td></tr>
+            <tr><th>Storage</th><td>Root 913G (706G free), data up to 19T</td></tr>
+            <tr><th>Public IP</th><td>156.145.138.103</td></tr>
+          </table>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

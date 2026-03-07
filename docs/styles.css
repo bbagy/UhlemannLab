@@ -222,6 +222,104 @@ p, li {
   color: #3f727a;
 }
 
+.workstation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.workstation-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.ws-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.ws-head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.ws-loc {
+  display: inline-block;
+  font-size: 0.76rem;
+  border-radius: 999px;
+  border: 1px solid #c7d0da;
+  background: #f2f5f8;
+  color: #44515f;
+  padding: 3px 8px;
+}
+
+.ws-visual {
+  height: 86px;
+  border-radius: 10px;
+  border: 2px solid #b7c3d2;
+  margin: 10px 0 12px;
+  background:
+    linear-gradient(180deg, #f8fbff 0%, #ecf2f9 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.ws-visual::before {
+  content: \"\";
+  position: absolute;
+  left: 12px;
+  right: 70px;
+  top: 14px;
+  bottom: 14px;
+  border-radius: 8px;
+  border: 2px solid rgba(255,255,255,0.9);
+}
+
+.ws-visual::after {
+  content: \"\";
+  position: absolute;
+  right: 14px;
+  top: 12px;
+  width: 40px;
+  height: 62px;
+  border-radius: 8px;
+}
+
+.ws-nook {
+  border-color: #7db89d;
+  background:
+    radial-gradient(circle at 78% 30%, rgba(103,170,136,0.35) 0 18%, transparent 19%),
+    linear-gradient(180deg, #eefaf3 0%, #deefe5 100%);
+}
+.ws-nook::after {
+  background: linear-gradient(180deg, #7fc5a2 0%, #4d8e6f 100%);
+}
+
+.ws-core2 {
+  border-color: #86abd8;
+  background:
+    radial-gradient(circle at 76% 32%, rgba(91,142,208,0.35) 0 18%, transparent 19%),
+    linear-gradient(180deg, #f0f6ff 0%, #dde9fa 100%);
+}
+.ws-core2::after {
+  background: linear-gradient(180deg, #79a9e2 0%, #3f6faa 100%);
+}
+
+.ws-core3 {
+  border-color: #b8a1d7;
+  background:
+    radial-gradient(circle at 76% 32%, rgba(157,115,202,0.3) 0 18%, transparent 19%),
+    linear-gradient(180deg, #f7f1ff 0%, #ece1fb 100%);
+}
+.ws-core3::after {
+  background: linear-gradient(180deg, #b89adf 0%, #7d5aa9 100%);
+}
+
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
