@@ -320,6 +320,16 @@ p, li {
   background: linear-gradient(180deg, #b89adf 0%, #7d5aa9 100%);
 }
 
+.ws-grid {
+  border-color: #b7bcc7;
+  background:
+    radial-gradient(circle at 76% 32%, rgba(126,136,154,0.3) 0 18%, transparent 19%),
+    linear-gradient(180deg, #f5f7fb 0%, #e8edf5 100%);
+}
+.ws-grid::after {
+  background: linear-gradient(180deg, #b2bbca 0%, #717d92 100%);
+}
+
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
