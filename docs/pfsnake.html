@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PFsnake</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260305-8">
 </head>
 <body>
   <div class="layout">
@@ -31,6 +31,17 @@
         STATUS: TEST IN PROGRESS
       </div>
 
+      <h2>Pipeline Flow</h2>
+      <div class="flow">
+        <span class="node">Prefilter</span><span class="arrow">→</span>
+        <span class="node">fastp</span><span class="arrow">→</span>
+        <span class="node">BWA / BAM QC</span><span class="arrow">→</span>
+        <span class="node">GATK / Variants</span><span class="arrow">→</span>
+        <span class="node">CNV</span><span class="arrow">→</span>
+        <span class="node">Mixed Infection</span><span class="arrow">→</span>
+        <span class="node">Drug Resistance</span>
+      </div>
+
       <h2>Build</h2>
       <div class="card"><pre><code>cd PFsnake
 docker build -t pf-snake:1.0 .</code></pre></div>
@@ -50,17 +61,6 @@ docker build -t pf-snake:1.0 .</code></pre></div>
   -d /media/uhlemann/Core3_V2/REF/pf_ref.fasta \
   -p 2 \
   -K</code></pre></div>
-
-      <h2>Pipeline Flow</h2>
-      <div class="flow">
-        <span class="node">Prefilter</span><span class="arrow">→</span>
-        <span class="node">fastp</span><span class="arrow">→</span>
-        <span class="node">BWA / BAM QC</span><span class="arrow">→</span>
-        <span class="node">GATK / Variants</span><span class="arrow">→</span>
-        <span class="node">CNV</span><span class="arrow">→</span>
-        <span class="node">Mixed Infection</span><span class="arrow">→</span>
-        <span class="node">Drug Resistance</span>
-      </div>
 
       <h2>Options</h2>
       <table>

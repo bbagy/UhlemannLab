@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>RNake</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260305-8">
 </head>
 <body>
   <div class="layout">
@@ -31,6 +31,15 @@
         STATUS: TEST IN PROGRESS
       </div>
 
+      <h2>Pipeline Flow</h2>
+      <div class="flow">
+        <span class="node">Prefilter</span><span class="arrow">→</span>
+        <span class="node">Trim</span><span class="arrow">→</span>
+        <span class="node">Bowtie2 Mapping</span><span class="arrow">→</span>
+        <span class="node">Count Matrix</span><span class="arrow">→</span>
+        <span class="node">Merged Table</span>
+      </div>
+
       <h2>Build</h2>
       <div class="card"><pre><code>cd RNake
 docker build -t rnake:latest .</code></pre></div>
@@ -50,15 +59,6 @@ docker build -t rnake:latest .</code></pre></div>
   -g /media/uhlemann/Core3_V2/REF/ecoli.fna \
   -a /media/uhlemann/Core3_V2/REF/ecoli.gff \
   -K</code></pre></div>
-
-      <h2>Pipeline Flow</h2>
-      <div class="flow">
-        <span class="node">Prefilter</span><span class="arrow">→</span>
-        <span class="node">Trim</span><span class="arrow">→</span>
-        <span class="node">Bowtie2 Mapping</span><span class="arrow">→</span>
-        <span class="node">Count Matrix</span><span class="arrow">→</span>
-        <span class="node">Merged Table</span>
-      </div>
 
       <h2>Options</h2>
       <table>

@@ -711,12 +711,13 @@ rule tetyper:
         mkdir -p "{OUTPUT_DIR}/5_TETyper" "{params.tmpdir}"
 
         SPADES_BIN_DIR=$(micromamba run -n "{params.tety_env}" bash -lc 'dirname "$(which spades.py)"' || true)
+        BWA_BIN_DIR=$(micromamba run -n "{params.tety_env}" bash -lc 'dirname "$(which bwa)"' || true)
         SAMTOOLS_BIN_DIR=$(micromamba run -n "{params.tety_env}" bash -lc 'dirname "$(which samtools)"' || true)
         BCFTOOLS_BIN_DIR=$(micromamba run -n "{params.tety_env}" bash -lc 'dirname "$(which bcftools)"' || true)
         BLAST_BIN_DIR=$(micromamba run -n "{params.tety_env}" bash -lc 'dirname "$(which blastn)"' || true)
         PY_BIN=$(micromamba run -n "{params.tety_env}" bash -lc 'which python' || true)
 
-        export PATH="$SPADES_BIN_DIR:$SAMTOOLS_BIN_DIR:$BCFTOOLS_BIN_DIR:$BLAST_BIN_DIR:$PATH"
+        export PATH="$SPADES_BIN_DIR:$BWA_BIN_DIR:$SAMTOOLS_BIN_DIR:$BCFTOOLS_BIN_DIR:$BLAST_BIN_DIR:$PATH"
         export TMPDIR="{params.tmpdir}"
         export OMP_NUM_THREADS="{params.threads}"
         export SPADES_MAX_MEMORY="{params.mem_gb}"
@@ -725,6 +726,7 @@ rule tetyper:
           echo "=== TETyper env check ==="
           echo "python: $PY_BIN"
           echo "spades: $(which spades.py || true)"
+          echo "bwa: $(which bwa || true)"
           echo "samtools: $(which samtools || true)"
           echo "bcftools: $(which bcftools || true)  ($({{ which bcftools >/dev/null 2>&1 && bcftools --version | head -n1; }} || echo 'N/A'))"
           echo "blastn:  $(which blastn || true)"
@@ -1055,16 +1057,21 @@ rule summary_report:
         plas_short_arg  = to_c(plas_short_list)
 
         shell(f"""
-          mkdir -p {os.path.dirname(summary_html)}
-          Rscript -e "rmarkdown::render('/home/uhlemann/heekuk_path/GoWGS/scripts/20251007_Summary_WGS_tem_v3.Rmd',
-            output_file='{summary_html}',
-            params=list(
-              mlst_master_csv='{mlst_master}',
-              args_full_files={args_full_arg},
-              args_short_files={args_short_arg},
-              plas_full_files={plas_full_arg},
-              plas_short_files={plas_short_arg},
-              tetyper_json='{tetyper_json}',
-              master_csv='{master_csv}'
-            ))"
+          mkdir -p {os.path.dirname(summary_html)} /work/.rmd_tmp
+          Rscript -e "src <- '/home/uhlemann/heekuk_path/GoWGS/scripts/20251007_Summary_WGS_tem_v3.Rmd'; \
+            tmp <- '/work/.rmd_tmp/20251007_Summary_WGS_tem_v3.Rmd'; \
+            file.copy(src, tmp, overwrite=TRUE); \
+            rmarkdown::render(tmp, \
+              output_file='{summary_html}', \
+              intermediates_dir='/work/.rmd_tmp', \
+              knit_root_dir='/work', \
+              params=list( \
+                mlst_master_csv='{mlst_master}', \
+                args_full_files={args_full_arg}, \
+                args_short_files={args_short_arg}, \
+                plas_full_files={plas_full_arg}, \
+                plas_short_files={plas_short_arg}, \
+                tetyper_json='{tetyper_json}', \
+                master_csv='{master_csv}' \
+              ))"
         """)

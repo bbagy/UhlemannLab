@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>UhlemannLab Documentation</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260305-8">
 </head>
 <body>
   <div class="layout">
@@ -38,17 +38,18 @@
 
       <h2>Pipeline Summary</h2>
       <div class="cards-grid">
-        <section class="pipeline-card featured">
+        <a class="pipeline-card featured card-link" href="longwgs.html" aria-label="Open longWGS page">
           <span class="card-badge live">Available now</span>
           <h3>longWGS</h3>
           <p>ONT assembly, polishing, QC, coverage, and annotation.</p>
           <div class="longwgs-visual" aria-hidden="true"></div>
-        </section>
-        <section class="pipeline-card">
-          <span class="card-badge">In testing</span>
+        </a>
+        <a class="pipeline-card featured shortwgs-featured card-link" href="shortwgs.html" aria-label="Open shortWGS page">
+          <span class="card-badge live">Available now</span>
           <h3>shortWGS</h3>
           <p>Illumina typing with MLST/ARG/Plasmid/TETyper and report outputs.</p>
-        </section>
+          <div class="shortwgs-visual" aria-hidden="true"></div>
+        </a>
         <section class="pipeline-card">
           <span class="card-badge">In testing</span>
           <h3>PFsnake</h3>

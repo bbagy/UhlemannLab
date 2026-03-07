@@ -49,21 +49,25 @@ RUN micromamba create -y -n wgs \
     r-data.table \
     r-tidyverse \
     r-rmarkdown \
+    r-dt \
     pandoc \
     openjdk \
     && micromamba clean -a -y
 
+# Ensure DT is available even if conda metadata/resolution varies by mirror.
+RUN micromamba run -n wgs Rscript -e "if(!requireNamespace('DT', quietly=TRUE)) install.packages('DT', repos='https://cloud.r-project.org')"
+
 # -----------------------------
-# Env 2: SRST2 tools + pip-installed SRST2 (python 3.11)
+# Env 2: SRST2 tools (Python 2.7 required by srst2 upstream code)
 # -----------------------------
 RUN micromamba create -y -n srst2 \
     -c conda-forge -c bioconda \
-    python=3.11 \
+    python=2.7 \
+    srst2 \
     bowtie2 \
     samtools \
     bcftools \
     && micromamba clean -a -y
-RUN micromamba run -n srst2 pip install --no-cache-dir git+https://github.com/katholt/srst2.git
 
 # -----------------------------
 # Env 3: TETyper_modi dependencies (python 3.9)
@@ -71,6 +75,7 @@ RUN micromamba run -n srst2 pip install --no-cache-dir git+https://github.com/ka
 RUN micromamba create -y -n tetyper \
     -c conda-forge -c bioconda \
     python=3.9 \
+    bwa \
     spades \
     samtools \
     bcftools \

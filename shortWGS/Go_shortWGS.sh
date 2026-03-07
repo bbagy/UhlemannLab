@@ -157,7 +157,7 @@ KRAKEN_DB_DIR=""
 GOWGS_DIR=""
 SNAKEDIR=""
 CORES=8
-IMAGE="shortwgs:1.0"
+IMAGE="shortwgs"
 DRYRUN=0
 KEEP_GOING=0
 SHOW_PROGRESS=1
@@ -277,12 +277,20 @@ if [ -n "$SNAKEDIR" ]; then
   [ -d "$SNAKEDIR" ] || { echo "[Go_shortWGS] SNAKEDIR not found: $SNAKEDIR"; exit 1; }
   PIPELINE_DIR="$(cd "$SNAKEDIR" && pwd -P)"
 fi
-SNAKEFILE_NAME="Go_shortWGS_V9_docker.smk"
+SNAKEFILE_NAME="Go_shortWGS.smk"
 if [ ! -f "$PIPELINE_DIR/$SNAKEFILE_NAME" ]; then
   echo "[Go_shortWGS][FATAL] Snakefile not found: $PIPELINE_DIR/$SNAKEFILE_NAME"
   exit 1
 fi
 echo "[Go_shortWGS] Using Snakefile: $PIPELINE_DIR/$SNAKEFILE_NAME"
+
+if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
+  echo "[Go_shortWGS][FATAL] Docker image not found locally: $IMAGE"
+  echo "[Go_shortWGS] Build example:"
+  echo "  cd \"$SCRIPT_DIR\" && docker build --network=host -t shortwgs ."
+  echo "[Go_shortWGS] Or specify an existing image with -m <image[:tag]>."
+  exit 1
+fi
 
 run(){
   docker run --rm \
@@ -292,7 +300,7 @@ run(){
     -v "$FASTQ_DIR_ABS":/fastq:ro \
     -v "$WGS_DB_DIR_ABS":/db/wgs_db:ro \
     -v "$KRAKEN_DB_DIR_ABS":/db/kraken2:ro \
-    -v "$GOWGS_DIR_ABS":/home/uhlemann/heekuk_path/GoWGS:ro \
+    -v "$GOWGS_DIR_ABS":/home/uhlemann/heekuk_path/GoWGS \
     -w /work \
     "$IMAGE" \
     "$@"

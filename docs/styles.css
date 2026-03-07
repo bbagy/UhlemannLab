@@ -155,6 +155,16 @@ p, li {
   padding: 14px;
 }
 
+.card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.card-link:hover {
+  text-decoration: none;
+}
+
 .pipeline-card h3 {
   margin: 0 0 6px;
   font-size: 1.02rem;
@@ -193,36 +203,71 @@ p, li {
 
 .longwgs-visual {
   margin-top: 10px;
-  border: 1px solid #b7dcca;
+  border: 2px solid #97cfb3;
   border-radius: 10px;
-  height: 68px;
+  height: 92px;
   background:
-    linear-gradient(90deg, #8cc9ad 0 8%, transparent 8% 12%, #8cc9ad 12% 20%, transparent 20% 24%, #8cc9ad 24% 32%, transparent 32% 100%),
-    radial-gradient(circle at 78% 40%, #9fd8be 0 18%, transparent 19%),
-    radial-gradient(circle at 88% 60%, #7fbf9f 0 11%, transparent 12%),
-    linear-gradient(120deg, #f3fff7 0%, #e6f5ec 100%);
+    radial-gradient(circle at 76% 48%, #8cc9ad 0 18%, transparent 19%),
+    radial-gradient(circle at 88% 66%, #73b796 0 12%, transparent 13%),
+    linear-gradient(90deg, #74b594 0 10%, transparent 10% 13%, #74b594 13% 23%, transparent 23% 26%, #74b594 26% 36%, transparent 36% 100%),
+    linear-gradient(120deg, #ecfff4 0%, #ddf3e6 100%);
+}
+
+.pipeline-card.featured.shortwgs-featured {
+  border-color: #2f6fd6;
+  background:
+    radial-gradient(circle at 92% 12%, #dce9ff 0%, transparent 42%),
+    linear-gradient(180deg, #f6f9ff 0%, #edf3ff 100%);
+}
+
+.pipeline-card.featured.shortwgs-featured h3 {
+  color: #17478f;
+}
+
+.pipeline-card.featured.shortwgs-featured .card-badge.live {
+  border-color: #2f6fd6;
+  color: #1a4f9f;
+  background: #e8f0ff;
+}
+
+.shortwgs-visual {
+  margin-top: 10px;
+  border: 2px solid #9dbbe9;
+  border-radius: 10px;
+  height: 92px;
+  background:
+    radial-gradient(circle at 80% 50%, #87afe9 0 14%, transparent 15%),
+    radial-gradient(circle at 68% 62%, #6d99db 0 9%, transparent 10%),
+    repeating-linear-gradient(
+      90deg,
+      #4f84d5 0 9px,
+      #dbe8ff 9px 13px
+    ),
+    linear-gradient(120deg, #f4f8ff 0%, #e6efff 100%);
 }
 
 .flow {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
 .node {
-  border: 1px solid #b8ccd2;
-  background: #f6fbfc;
-  color: #214452;
+  border: 2px solid #a8c3cb;
+  background: #f5fbfd;
+  color: #1e4050;
   border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 0.84rem;
+  padding: 8px 14px;
+  font-size: 0.92rem;
+  font-weight: 600;
 }
 
 .arrow {
-  color: #6c7d8a;
-  font-size: 0.9rem;
+  color: #5e7383;
+  font-size: 1rem;
+  font-weight: 700;
 }
 
 pre {

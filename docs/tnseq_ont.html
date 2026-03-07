@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TnSeq_ONT</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260305-8">
 </head>
 <body>
   <div class="layout">
@@ -31,6 +31,15 @@
         STATUS: TEST IN PROGRESS
       </div>
 
+      <h2>Pipeline Flow</h2>
+      <div class="flow">
+        <span class="node">Read Scan</span><span class="arrow">→</span>
+        <span class="node">Anchor Match</span><span class="arrow">→</span>
+        <span class="node">Flank Extraction</span><span class="arrow">→</span>
+        <span class="node">Clustering</span><span class="arrow">→</span>
+        <span class="node">Summary Output</span>
+      </div>
+
       <h2>Run</h2>
       <div class="card"><pre><code>python TnSeq_ONT/Go_search_tnseq_flank.py --help</code></pre></div>
 
@@ -42,15 +51,6 @@
 
       <h2>Purpose</h2>
       <p>Use this workflow to extract transposon flanks from ONT reads and cluster insertion-related signals.</p>
-
-      <h2>Pipeline Flow</h2>
-      <div class="flow">
-        <span class="node">Read Scan</span><span class="arrow">→</span>
-        <span class="node">Anchor Match</span><span class="arrow">→</span>
-        <span class="node">Flank Extraction</span><span class="arrow">→</span>
-        <span class="node">Clustering</span><span class="arrow">→</span>
-        <span class="node">Summary Output</span>
-      </div>
 
       <h2>Options</h2>
       <table>

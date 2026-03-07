@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>shortWGS</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260305-8">
 </head>
 <body>
   <div class="layout">
@@ -27,8 +27,18 @@
       <span class="badge">Illumina WGS</span>
       <h1>shortWGS</h1>
       <p>QC, Kraken2 species inference, SRST2 typing, TETyper, and HTML/CSV summary generation.</p>
-      <div class="status-banner status-wip">
-        STATUS: TEST IN PROGRESS
+      <div class="status-banner status-tested">
+        STATUS: AVAILABLE NOW (VALIDATED)
+      </div>
+
+      <h2>Pipeline Flow</h2>
+      <div class="flow">
+        <span class="node">Prefilter</span><span class="arrow">→</span>
+        <span class="node">fastp</span><span class="arrow">→</span>
+        <span class="node">Kraken2</span><span class="arrow">→</span>
+        <span class="node">SRST2 (MLST/ARG/Plasmid)</span><span class="arrow">→</span>
+        <span class="node">TETyper</span><span class="arrow">→</span>
+        <span class="node">MultiQC + Summary</span>
       </div>
 
       <h2>Build</h2>
@@ -46,23 +56,12 @@ docker build --network=host -t shortwgs:1.0 .</code></pre></div>
 
       <h2>Real Example</h2>
       <div class="card"><pre><code>Go_shortWGS.sh \
-  -i 1_fastqs \
-  -o 2_shortWGS_out \
-  -d /media/uhlemann/Core3_V2/DB/WGS_DB2 \
-  -k /media/uhlemann/Core3_V2/DB/kraken2_db \
+  -i LY \
+  -o LY_test_output \
+  -d /media/uhlemann/core4/DB/WGS_DB2 \
+  -k /media/uhlemann/core4/DB/kraken2DB/k2_pluspfp_16gb_20241228 \
   -r /home/uhlemann/heekuk_path/GoWGS \
-  -c 8 \
   -K</code></pre></div>
-
-      <h2>Pipeline Flow</h2>
-      <div class="flow">
-        <span class="node">Prefilter</span><span class="arrow">→</span>
-        <span class="node">fastp</span><span class="arrow">→</span>
-        <span class="node">Kraken2</span><span class="arrow">→</span>
-        <span class="node">SRST2 (MLST/ARG/Plasmid)</span><span class="arrow">→</span>
-        <span class="node">TETyper</span><span class="arrow">→</span>
-        <span class="node">MultiQC + Summary</span>
-      </div>
 
       <h2>Options</h2>
       <table>
@@ -85,7 +84,7 @@ GoWGS host directory (for Rmd template path)</code></pre></div>
 3_ARGs_srst2_out/ 4_Plasmid_srst2_out/ 5_TETyper/
 multiqc_report.html
 summary_master.csv
-summary_report.html</code></pre></div>
+summary_report.html   &lt;-- FINAL REPORT FILE</code></pre></div>
     </main>
   </div>
 </body>

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>longWGS</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260305-8">
 </head>
 <body>
   <div class="layout">
@@ -31,6 +31,17 @@
         STATUS: TESTED IN NOOK AND CORE3 WORKSTATION
       </div>
 
+      <h2>Pipeline Flow</h2>
+      <div class="flow">
+        <span class="node">Prefilter</span><span class="arrow">→</span>
+        <span class="node">QC / Porechop</span><span class="arrow">→</span>
+        <span class="node">Autocycler</span><span class="arrow">→</span>
+        <span class="node">Medaka</span><span class="arrow">→</span>
+        <span class="node">QUAST + CheckM2</span><span class="arrow">→</span>
+        <span class="node">Coverage</span><span class="arrow">→</span>
+        <span class="node">Bakta</span>
+      </div>
+
       <h2>Build</h2>
       <div class="card"><pre><code>cd longWGS
 docker build -t longwgs .</code></pre></div>
@@ -50,17 +61,6 @@ docker build -t longwgs .</code></pre></div>
   -s /home/uhlemann/heekuk_path \
   -p 0 \
   -K</code></pre></div>
-
-      <h2>Pipeline Flow</h2>
-      <div class="flow">
-        <span class="node">Prefilter</span><span class="arrow">→</span>
-        <span class="node">QC / Porechop</span><span class="arrow">→</span>
-        <span class="node">Autocycler</span><span class="arrow">→</span>
-        <span class="node">Medaka</span><span class="arrow">→</span>
-        <span class="node">QUAST + CheckM2</span><span class="arrow">→</span>
-        <span class="node">Coverage</span><span class="arrow">→</span>
-        <span class="node">Bakta</span>
-      </div>
 
       <h2>Options</h2>
       <table>
