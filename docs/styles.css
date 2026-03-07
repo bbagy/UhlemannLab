@@ -136,9 +136,90 @@ p, li {
 }
 
 .status-wip {
-  border-color: #b07b16;
-  background: #fff4df;
-  color: #7a5310;
+  border-color: #a7b0ba;
+  background: #eef2f6;
+  color: #4d5a69;
+}
+
+/* Per-pipeline theme accents for subpages */
+.theme-long .badge {
+  border-color: #9fd2b8;
+  color: #1b6c4a;
+  background: #e9f8ef;
+}
+.theme-long .status-tested {
+  border-color: #1f8f62;
+  background: #e8f8ef;
+  color: #0f5a3c;
+}
+.theme-long .node {
+  border-color: #8fc9ad;
+  background: #eef9f3;
+  color: #175c40;
+}
+.theme-long .arrow {
+  color: #3f7a60;
+}
+
+.theme-short .badge {
+  border-color: #9dbbe9;
+  color: #1f5db7;
+  background: #e9f2ff;
+}
+.theme-short .status-tested {
+  border-color: #2f6fd6;
+  background: #e8f0ff;
+  color: #1a4f9f;
+}
+.theme-short .node {
+  border-color: #95b5e6;
+  background: #f1f6ff;
+  color: #1e4f98;
+}
+.theme-short .arrow {
+  color: #4a74b8;
+}
+
+.theme-pf .badge {
+  border-color: #d3c2a1;
+  color: #7b5d2a;
+  background: #f7f1e7;
+}
+.theme-pf .node {
+  border-color: #ccb991;
+  background: #faf5eb;
+  color: #6f5324;
+}
+.theme-pf .arrow {
+  color: #8a7141;
+}
+
+.theme-rna .badge {
+  border-color: #c3a4d8;
+  color: #5e2f80;
+  background: #f3eaf9;
+}
+.theme-rna .node {
+  border-color: #c1a0d7;
+  background: #f8f1fc;
+  color: #5b2f79;
+}
+.theme-rna .arrow {
+  color: #7a56a1;
+}
+
+.theme-tnseq .badge {
+  border-color: #a2c8cd;
+  color: #245c66;
+  background: #e9f4f6;
+}
+.theme-tnseq .node {
+  border-color: #9bc2c8;
+  background: #edf7f9;
+  color: #255963;
+}
+.theme-tnseq .arrow {
+  color: #3f727a;
 }
 
 .cards-grid {
