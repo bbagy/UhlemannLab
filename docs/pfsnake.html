@@ -56,8 +56,8 @@ docker build -t pf-snake:1.0 .</code></pre></div>
 
       <h2>Real Example</h2>
       <div class="card"><pre><code>Go_PFsnake.sh \
-  -i 1_fastqs \
-  -o 2_pfsnake_out \
+  -i PFsnake/20261101_PF_HKP \
+  -o PFsnake/20261101_PF_HKP_out \
   -d /media/uhlemann/Core3_V2/REF/pf_ref.fasta \
   -p 2 \
   -K</code></pre></div>
@@ -72,14 +72,32 @@ docker build -t pf-snake:1.0 .</code></pre></div>
       </table>
 
       <h2>Expected Input</h2>
-      <div class="card"><pre><code>FASTQ directory
-Reference FASTA
-Optional GFF</code></pre></div>
+      <div class="card"><pre><code>PFsnake/
+|-- 20251101_PF_HKP/
+|-- 20251101_PF_HKP_out/
+|-- 20261101_PF_HKP/
+|   |-- SAMPLE1_R1.fastq.gz
+|   `-- SAMPLE1_R2.fastq.gz
+`-- 20261101_PF_HKP_out/
+
+pf_ref/
+|-- pf_ref.fasta
+`-- (optional annotation files)</code></pre></div>
 
       <h2>Main Outputs</h2>
-      <div class="card"><pre><code>1_QC/ 2_bwa/ 3_bam_qc/ 4_gatk_out/
-6_cnv/ 7_mixed_infection/ 8_recomb_explore/
-9_drug_resistance/</code></pre></div>
+      <div class="card"><pre><code>PFsnake/
+|-- 20251101_PF_HKP/
+|-- 20251101_PF_HKP_out/
+|-- 20261101_PF_HKP/
+`-- 20261101_PF_HKP_out/
+    |-- 1_QC/
+    |-- 2_bwa/
+    |-- 3_bam_qc/
+    |-- 4_gatk_out/
+    |-- 6_cnv/
+    |-- 7_mixed_infection/
+    |-- 8_recomb_explore/
+    `-- 9_drug_resistance/</code></pre></div>
     </main>
   </div>
 </body>

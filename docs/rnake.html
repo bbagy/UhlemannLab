@@ -54,8 +54,8 @@ docker build -t rnake:latest .</code></pre></div>
 
       <h2>Real Example</h2>
       <div class="card"><pre><code>Go_Rnake.sh \
-  -i 1_reads \
-  -o ecoli_RNAseq \
+  -i RNake/20261101_RNA_HKP \
+  -o RNake/20261101_RNA_HKP_out \
   -g /media/uhlemann/Core3_V2/REF/ecoli.fna \
   -a /media/uhlemann/Core3_V2/REF/ecoli.gff \
   -K</code></pre></div>
@@ -69,16 +69,28 @@ docker build -t rnake:latest .</code></pre></div>
       </table>
 
       <h2>Expected Input</h2>
-      <div class="card"><pre><code>RNA-seq FASTQ directory
-Reference genome FASTA
-Annotation GFF</code></pre></div>
+      <div class="card"><pre><code>RNake/
+|-- 20251101_RNA_HKP/
+|-- 20251101_RNA_HKP_out/
+|-- 20261101_RNA_HKP/
+|   |-- SAMPLE1_R1.fastq.gz
+|   `-- SAMPLE1_R2.fastq.gz
+`-- 20261101_RNA_HKP_out/
+
+RNA_ref/
+|-- ecoli.fna
+`-- ecoli.gff</code></pre></div>
 
       <h2>Main Outputs</h2>
-      <div class="card"><pre><code>&lt;PROJECT&gt;_RNAseq_output/
-  1_trim/
-  3_bowtie2_files/
-  5_counts/
-  merged_counts_with_gene_names.csv</code></pre></div>
+      <div class="card"><pre><code>RNake/
+|-- 20251101_RNA_HKP/
+|-- 20251101_RNA_HKP_out/
+|-- 20261101_RNA_HKP/
+`-- 20261101_RNA_HKP_out/
+    |-- 1_trim/
+    |-- 3_bowtie2_files/
+    |-- 5_counts/
+    `-- merged_counts_with_gene_names.csv</code></pre></div>
     </main>
   </div>
 </body>

@@ -55,9 +55,9 @@ docker build -t longwgs .</code></pre></div>
 
       <h2>Real Example</h2>
       <div class="card"><pre><code>Go_longWGS.sh \
-  -i 1_merged_fastqs \
-  -o 2_longWGS_out \
-  -d /media/uhlemann/Core3_V2/DB/longWGS_DB \
+  -i longWGS/20261101_ONT_HKP \
+  -o longWGS/20261101_ONT_HKP_out \
+  -d /media/uhlemann/core4/DB/longWGS_DB \
   -s /home/uhlemann/heekuk_path \
   -p 0 \
   -K</code></pre></div>
@@ -72,18 +72,34 @@ docker build -t longwgs .</code></pre></div>
       </table>
 
       <h2>Expected Input</h2>
-      <div class="card"><pre><code>FASTQ_DIR/
-  sample1.fastq.gz
-  sample2.fastq.gz
-DB/
-  medaka_models/
-  plassembler_db/
-  (other rule-required DBs)</code></pre></div>
+      <div class="card"><pre><code>longWGS/
+|-- 20251101_ONT_HKP/
+|-- 20251101_ONT_HKP_out/
+|-- 20261101_ONT_HKP/
+|   |-- barcode01.fastq.gz
+|   |-- barcode02.fastq.gz
+|   `-- barcode03.fastq.gz
+`-- 20261101_ONT_HKP_out/
+
+longWGS_DB/
+|-- medaka_models/
+|-- plassembler_db/
+`-- (other rule-required DBs)</code></pre></div>
 
       <h2>Main Outputs</h2>
-      <div class="card"><pre><code>1_QC/ 2_quast/ 3_autocycler/ 4_medaka/
-5_checkm2/ 6_coverage/ 7_bakta/
-8_Bandage_image/ (optional)</code></pre></div>
+      <div class="card"><pre><code>longWGS/
+|-- 20251101_ONT_HKP/
+|-- 20251101_ONT_HKP_out/
+|-- 20261101_ONT_HKP/
+`-- 20261101_ONT_HKP_out/
+    |-- 1_QC/
+    |-- 2_quast/
+    |-- 3_autocycler/
+    |-- 4_medaka/
+    |-- 5_checkm2/
+    |-- 6_coverage/
+    |-- 7_bakta/
+    `-- 8_Bandage_image/ (optional)</code></pre></div>
     </main>
   </div>
 </body>

@@ -56,8 +56,8 @@ docker build --network=host -t shortwgs:1.0 .</code></pre></div>
 
       <h2>Real Example</h2>
       <div class="card"><pre><code>Go_shortWGS.sh \
-  -i LY \
-  -o LY_test_output \
+  -i shortWGS/20261101_WGS_HKP \
+  -o shortWGS/20261101_WGS_HKP_out \
   -d /media/uhlemann/core4/DB/WGS_DB2 \
   -k /media/uhlemann/core4/DB/kraken2DB/k2_pluspfp_16gb_20241228 \
   -r /home/uhlemann/heekuk_path/GoWGS \
@@ -73,11 +73,13 @@ docker build --network=host -t shortwgs:1.0 .</code></pre></div>
       </table>
 
       <h2>Expected Input</h2>
-      <div class="card"><pre><code>input_fastq_dir/
-|-- SAMPLE1_R1.fastq.gz
-|-- SAMPLE1_R2.fastq.gz
-|-- SAMPLE2_R1.fastq.gz
-`-- SAMPLE2_R2.fastq.gz
+      <div class="card"><pre><code>shortWGS/
+|-- 20251101_WGS_HKP/
+|-- 20251101_WGS_HKP_out/
+|-- 20261101_WGS_HKP/
+|   |-- SAMPLE1_R1.fastq.gz
+|   `-- SAMPLE1_R2.fastq.gz
+`-- 20261101_WGS_HKP_out/
 
 WGS_DB2/
 |-- CARD/
@@ -93,16 +95,20 @@ GoWGS/
     `-- 20251007_Summary_WGS_tem_v3.Rmd</code></pre></div>
 
       <h2>Main Outputs</h2>
-      <div class="card"><pre><code>LY_test_output/
-|-- 1_fastp_out/
-|-- 2a_kraken2/
-|-- 2_ST_srst2_out/
-|-- 3_ARGs_srst2_out/
-|-- 4_Plasmid_srst2_out/
-|-- 5_TETyper/
-|-- multiqc_report.html
-|-- summary_master.csv
-`-- summary_report.html   &lt;-- FINAL REPORT FILE</code></pre></div>
+      <div class="card"><pre><code>shortWGS/
+|-- 20251101_WGS_HKP/
+|-- 20251101_WGS_HKP_out/
+|-- 20261101_WGS_HKP/
+`-- 20261101_WGS_HKP_out/
+    |-- 1_fastp_out/
+    |-- 2a_kraken2/
+    |-- 2_ST_srst2_out/
+    |-- 3_ARGs_srst2_out/
+    |-- 4_Plasmid_srst2_out/
+    |-- 5_TETyper/
+    |-- multiqc_report.html
+    |-- summary_master.csv
+    `-- summary_report.html   &lt;-- FINAL REPORT FILE</code></pre></div>
     </main>
   </div>
 </body>

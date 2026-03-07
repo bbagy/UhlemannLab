@@ -45,9 +45,9 @@
 
       <h2>Real Example</h2>
       <div class="card"><pre><code>python TnSeq_ONT/Go_search_tnseq_flank.py \
-  --input reads.fastq.gz \
+  --input TnSeq_ONT/20261101_TNSEQ_HKP/reads.fastq.gz \
   --anchor Tn_anchor.fa \
-  --outdir tnseq_out</code></pre></div>
+  --outdir TnSeq_ONT/20261101_TNSEQ_HKP_out</code></pre></div>
 
       <h2>Purpose</h2>
       <p>Use this workflow to extract transposon flanks from ONT reads and cluster insertion-related signals.</p>
@@ -61,12 +61,25 @@
       </table>
 
       <h2>Expected Input</h2>
-      <div class="card"><pre><code>ONT read file (FASTQ/FASTQ.GZ)
-Anchor sequence FASTA</code></pre></div>
+      <div class="card"><pre><code>TnSeq_ONT/
+|-- 20251101_TNSEQ_HKP/
+|-- 20251101_TNSEQ_HKP_out/
+|-- 20261101_TNSEQ_HKP/
+|   `-- reads.fastq.gz
+`-- 20261101_TNSEQ_HKP_out/
+
+TnSeq_ref/
+`-- Tn_anchor.fa</code></pre></div>
 
       <h2>Main Outputs</h2>
-      <div class="card"><pre><code>Extracted flank sequences
-Clustered flank summary tables/files</code></pre></div>
+      <div class="card"><pre><code>TnSeq_ONT/
+|-- 20251101_TNSEQ_HKP/
+|-- 20251101_TNSEQ_HKP_out/
+|-- 20261101_TNSEQ_HKP/
+`-- 20261101_TNSEQ_HKP_out/
+    |-- extracted_flanks/
+    |-- clustered_flanks/
+    `-- flank_summary.tsv</code></pre></div>
     </main>
   </div>
 </body>
