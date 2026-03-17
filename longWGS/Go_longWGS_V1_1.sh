@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
-usage(){ echo "Usage: $0 -i INPUT -o OUTPUT -d DB [-s SNAKEDIR] [-p 0|1] [-n] [-K]"; exit 1; }
+usage(){ echo "Usage: $0 -i INPUT -o OUTPUT -d DB [-m MAP_FILE] [-s SNAKEDIR] [-p 0|1] [-n] [-K]"; exit 1; }
 
 INPUT=""; OUTPUT=""; DB=""; SNAKEDIR=""; PORECHOP=0
+MAP_FILE=""
 DRYRUN=0
 KEEP_GOING=0
 PROGRESS_INTERVAL=60

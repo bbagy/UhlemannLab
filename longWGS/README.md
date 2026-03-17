@@ -18,7 +18,9 @@ Use `Go_longWGS_V1_1.sh` as the current wrapper.
 
 ```mermaid
 flowchart LR
-  A[FASTQ] --> B[Prefilter gzip check]
+  P[barcode dirs\nfastq_pass/] --> Q[Go_merge_rename.sh\nmerge + rename]
+  Q --> A[sample.fastq.gz]
+  A --> B[Prefilter gzip check]
   B --> C[QC / optional porechop]
   C --> D[Autocycler assembly]
   D --> E[Medaka polish]
@@ -74,6 +76,39 @@ docker run --rm longwgs checkm2 --help
 # Bakta help (example)
 docker run --rm longwgs bakta --help
 ```
+
+## Pre-processing: Merge & Rename
+
+ONT sequencing output typically produces per-barcode directories (e.g. `fastq_pass/barcode01/`).
+Before running the pipeline, merge the per-read files into a single fastq.gz per sample and
+rename them from barcode names to sample names using `Go_merge_rename.sh`.
+
+```text
+fastq_pass/
+  barcode01/  →  merged_fastqs/KP0011.fastq.gz
+  barcode02/  →  merged_fastqs/KP0063.fastq.gz
+  ...
+```
+
+**Map file format** (tab or space separated, `sample  barcode`):
+
+```text
+KP0011  barcode01
+KP0063  barcode02
+...
+```
+
+**Run:**
+
+```bash
+# dry-run first
+bash Go_merge_rename.sh -i fastq_pass -o merged_fastqs -m samples_barcodes.txt -n
+
+# apply
+bash Go_merge_rename.sh -i fastq_pass -o merged_fastqs -m samples_barcodes.txt
+```
+
+The `merged_fastqs/` directory is then used as input (`-i`) for the pipeline.
 
 ## Quick Start
 

@@ -317,6 +317,8 @@ BASE_ARGS=(
   output_dir="$OUTPUT_DIR"
   wgs_db=/db/wgs_db
   kraken_db=/db/kraken2
+  kraken_db_host="$KRAKEN_DB_DIR_ABS"
+  kraken_db_name="$(basename "$KRAKEN_DB_DIR_ABS")"
 )
 
 if [ "$DRYRUN" -eq 1 ]; then

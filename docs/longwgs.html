@@ -34,6 +34,9 @@
 
       <h2>Pipeline Flow</h2>
       <div class="flow">
+        <span class="node node-pre">barcode dirs</span><span class="arrow">→</span>
+        <span class="node node-pre">Go_merge_rename.sh</span><span class="arrow">→</span>
+        <span class="node node-pre">sample.fastq.gz</span><span class="arrow">→</span>
         <span class="node">Prefilter</span><span class="arrow">→</span>
         <span class="node">QC / Porechop</span><span class="arrow">→</span>
         <span class="node">Autocycler</span><span class="arrow">→</span>
@@ -42,6 +45,22 @@
         <span class="node">Coverage</span><span class="arrow">→</span>
         <span class="node">Bakta</span>
       </div>
+
+      <h2>Pre-processing: Merge &amp; Rename</h2>
+      <p>
+        ONT output produces per-barcode directories. Before running the pipeline,
+        merge reads and rename to sample names using <code>Go_merge_rename.sh</code>.
+      </p>
+      <p>Map file format (tab or space separated):</p>
+      <div class="card"><pre><code>KP0011  barcode01
+KP0063  barcode02
+...</code></pre></div>
+      <div class="card"><pre><code># dry-run first
+bash Go_merge_rename.sh -i fastq_pass -o merged_fastqs -m samples_barcodes.txt -n
+
+# apply
+bash Go_merge_rename.sh -i fastq_pass -o merged_fastqs -m samples_barcodes.txt</code></pre></div>
+      <p>Then use <code>merged_fastqs/</code> as the <code>-i</code> input for the pipeline.</p>
 
       <h2>Build</h2>
       <div class="card"><pre><code>cd longWGS
@@ -73,14 +92,18 @@ docker build -t longwgs .</code></pre></div>
       </table>
 
       <h2>Expected Input</h2>
-      <div class="card"><pre><code>longWGS/
-|-- 20251101_ONT_HKP/
-|-- 20251101_ONT_HKP_out/
-|-- 20261101_ONT_HKP/
-|   |-- barcode01.fastq.gz
-|   |-- barcode02.fastq.gz
-|   `-- barcode03.fastq.gz
-`-- 20261101_ONT_HKP_out/
+      <p>Raw ONT output (before pre-processing):</p>
+      <div class="card"><pre><code>fastq_pass/
+|-- barcode01/
+|   `-- *.fastq.gz
+|-- barcode02/
+|   `-- *.fastq.gz
+`-- ...</code></pre></div>
+      <p>After <code>Go_merge_rename.sh</code> (pipeline input <code>-i</code>):</p>
+      <div class="card"><pre><code>merged_fastqs/
+|-- KP0011.fastq.gz
+|-- KP0063.fastq.gz
+`-- ...
 
 longWGS_DB/
 |-- medaka_models/

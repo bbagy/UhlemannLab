@@ -1,0 +1,358 @@
+---
+output: 
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    css: /home/uhlemann/heekuk_path/GoWGS/scripts/styles.css
+params:
+  mlst_files: NULL        # 벡터
+  args_full_files: NULL   # 벡터
+  args_short_files: NULL  # 벡터
+  plas_full_files: NULL 
+  plas_short_files: NULL   # 벡터
+  tetyper_json: NULL                # 단일 파일 (필수)
+  mlst_master_csv: NULL
+  master_csv: NULL                  # 요약 CSV 경로 (선택)
+  kraken2_table: NULL               # Kraken2 contamination 요약 CSV
+  kraken2_db_name: NULL             # Kraken2 DB 이름
+---
+
+# <span class="title-text">Uhlemann Lab WGS Summary Report</span>  
+
+<div style="text-align:right; font-size:18px; font-weight:bold;">
+  Analysis date: `r Sys.Date()`
+</div>
+
+```{r setup, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(error = TRUE)  # 오류 나도 문서 계속 생성
+
+library(data.table)
+library(dplyr)
+library(DT)
+library(readr)
+
+read_srst2_safe <- function(p){
+  if (!is.character(p) || length(p) != 1 || !nzchar(p) || !file.exists(p)) return(tibble())
+  df <- tryCatch(
+    data.table::fread(p, sep = "\t", header = TRUE, fill = TRUE, quote = "",
+                      data.table = FALSE, showProgress = FALSE),
+    error = function(e) NULL
+  )
+  if (is.null(df)) return(tibble())
+  if (ncol(df) > 0) {
+    keep <- colSums(!is.na(df) & df != "") > 0
+    if (any(keep)) df <- df[, keep, drop = FALSE]
+  }
+  names(df) <- gsub("\\s+", "_", tolower(names(df)))
+  if (!"gene" %in% names(df) && "allele" %in% names(df)) df$gene <- df$allele
+  tibble::as_tibble(df)
+}
+
+```
+
+
+***
+
+## Master Summary table
+
+
+```{r master_table, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+
+if (!is.null(params$master_csv) && file.exists(params$master_csv) && file.info(params$master_csv)$size > 0) {
+  master <- read.csv(params$master_csv, stringsAsFactors = FALSE, check.names = FALSE)
+} else {
+  master <- data.frame(Message = "summary_master.csv not found or empty")
+}
+DT::datatable(master, extensions = 'Buttons',
+  options = list(dom = 'frtipB', buttons = c('excel','csv'),
+                 pageLength = 50, scrollX = TRUE, scrollY = "300px"))
+
+
+
+
+```
+
+<br>
+<br>
+
+***
+
+## Kraken2 Result
+
+Kraken2 DB: `r ifelse(is.null(params$kraken2_db_name) || !nzchar(params$kraken2_db_name), "NA", params$kraken2_db_name)`
+
+```{r kraken2_table, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+if (!is.null(params$kraken2_table) && file.exists(params$kraken2_table) && file.info(params$kraken2_table)$size > 0) {
+  krk <- read.csv(params$kraken2_table, stringsAsFactors = FALSE, check.names = FALSE)
+} else {
+  krk <- data.frame(Message = "kraken2_summary.csv not found or empty")
+}
+DT::datatable(krk, extensions = 'Buttons',
+  options = list(dom = 'frtipB', buttons = c('excel','csv'),
+                 pageLength = 50, scrollX = TRUE, scrollY = "300px"))
+```
+
+<br>
+<br>
+
+***
+
+## MLST Result
+
+MLST (Multi-locus sequence typing) analysis determines the sequence types of isolates based on housekeeping genes.
+
+```{r mlst_table, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+
+if (!is.null(params$mlst_master_csv) && file.exists(params$mlst_master_csv) && file.info(params$mlst_master_csv)$size > 0) {
+  master <- read.csv(params$mlst_master_csv, stringsAsFactors = FALSE, check.names = FALSE)
+} else {
+  master <- data.frame(Message = "summary_master.csv not found or empty")
+}
+DT::datatable(master, extensions = 'Buttons',
+  options = list(dom = 'frtipB', buttons = c('excel','csv'),
+                 pageLength = 50, scrollX = TRUE, scrollY = "300px"))
+
+```
+
+<br>
+<br>
+
+***
+
+## Antimicrobial Resistance Genes – Short Summary
+
+This table shows the **summary-level SRST2 results**, reporting only gene-level matches for antimicrobial resistance.
+
+```{r args_table, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+path <- if (is.character(params$args_short_files) && length(params$args_short_files) >= 1) {
+  params$args_short_files[[1]]
+} else {
+  ""
+}
+
+args_tbl <- read_srst2_safe(path)
+
+if (nrow(args_tbl) == 0) {
+  cat("No ARG entries found (file missing or unreadable).")
+} else {
+  DT::datatable(
+    args_tbl,
+    extensions = "Buttons",
+    options = list(
+      dom = "frtipB",
+      buttons = c("excel","csv"),
+      pageLength = 50,
+      scrollX = TRUE,
+      scrollY = "300px"
+    )
+  )
+}
+```
+
+<br>
+<br>
+
+***
+
+## Antimicrobial Resistance Genes – Full Matches
+
+This table contains **detailed SRST2 output**, including full gene matches, alleles, and associated metrics.
+
+```{r args_full_table, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+
+path <- if (is.character(params$args_full_files) && length(params$args_full_files) >= 1) {
+  params$args_full_files[[1]]
+} else {
+  ""
+}
+
+args_tbl <- read_srst2_safe(path)
+
+if (nrow(args_tbl) == 0) {
+  cat("No ARG entries found (file missing or unreadable).")
+} else {
+  DT::datatable(
+    args_tbl,
+    extensions = "Buttons",
+    options = list(
+      dom = "frtipB",
+      buttons = c("excel","csv"),
+      pageLength = 50,
+      scrollX = TRUE,
+      scrollY = "300px"
+    )
+  )
+}
+
+
+```
+
+<br>
+<br>
+
+***
+
+
+## Plasmid Genes Detected – Short Summary
+
+Plasmid replicons and associated genes identified by SRST2 against plasmid database.
+
+```{r plas_short_table, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+
+path <- if (is.character(params$plas_short_files) && length(params$plas_short_files) >= 1) {
+  params$plas_short_files[[1]]
+} else {
+  ""
+}
+
+args_tbl <- read_srst2_safe(path)
+
+if (nrow(args_tbl) == 0) {
+  cat("No ARG entries found (file missing or unreadable).")
+} else {
+  DT::datatable(
+    args_tbl,
+    extensions = "Buttons",
+    options = list(
+      dom = "frtipB",
+      buttons = c("excel","csv"),
+      pageLength = 50,
+      scrollX = TRUE,
+      scrollY = "300px"
+    )
+  )
+}
+
+```
+
+
+<br>
+<br>
+
+***
+
+## Plasmid Genes Detected - Full Matches
+
+Plasmid replicons and associated genes identified by SRST2 against plasmid database.
+
+```{r plas_table, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+
+path <- if (is.character(params$plas_full_files) && length(params$plas_full_files) >= 1) {
+  params$plas_full_files[[1]]
+} else {
+  ""
+}
+
+args_tbl <- read_srst2_safe(path)
+
+if (nrow(args_tbl) == 0) {
+  cat("No ARG entries found (file missing or unreadable).")
+} else {
+  DT::datatable(
+    args_tbl,
+    extensions = "Buttons",
+    options = list(
+      dom = "frtipB",
+      buttons = c("excel","csv"),
+      pageLength = 50,
+      scrollX = TRUE,
+      scrollY = "300px"
+    )
+  )
+}
+
+```
+
+<br>
+<br>
+
+***
+
+```{r tetyper_flag, include=FALSE}
+has_tetyper <- FALSE
+valid_idx <- NULL
+path <- params$tetyper_json
+
+is_good <- function(v) {
+  v <- trimws(as.character(v))
+  !is.na(v) & nzchar(v) & toupper(v) != "N/A" & v != "-"
+}
+
+if (!is.null(path) && nzchar(path) && file.exists(path) && file.info(path)$size > 0) {
+  x <- try(jsonlite::fromJSON(path, simplifyVector = TRUE), silent = TRUE)
+  if (!inherits(x, "try-error") && !is.null(x)) {
+    df <- as.data.frame(x, stringsAsFactors = FALSE, check.names = FALSE)
+    names(df) <- trimws(gsub("\\.+"," ", names(df)))  # "Struct.Profile" -> "Struct Profile"
+    # 디버그: 컬럼 목록 찍기
+    message("[TETyper] columns: ", paste(colnames(df), collapse=", "))
+
+    sp   <- if ("Struct Profile"     %in% names(df)) df[["Struct Profile"]]     else NA
+    sv   <- if ("Structural Variant" %in% names(df)) df[["Structural Variant"]] else NA
+    cv   <- if ("Combined Variant"   %in% names(df)) df[["Combined Variant"]]   else NA
+    snpv <- if ("SNP Variant"        %in% names(df)) df[["SNP Variant"]]        else NA
+
+    valid_idx <- is_good(sp) | is_good(sv) | is_good(cv) | is_good(snpv)
+    has_tetyper <- any(valid_idx, na.rm = TRUE)
+
+    assign("tetyper_df_internal", df, envir = .GlobalEnv)
+    assign("tetyper_valid_idx_internal", valid_idx, envir = .GlobalEnv)
+
+    message("[TETyper] has_tetyper=", has_tetyper, 
+            " | any valid rows: ", ifelse(is.null(valid_idx), NA, any(valid_idx, na.rm=TRUE)))
+  } else {
+    message("[TETyper] JSON parse failed")
+  }
+} else {
+  message("[TETyper] file missing or empty")
+}
+```
+
+
+```{r tetyper_title, echo=FALSE, results='asis', eval=has_tetyper}
+cat("### TETyper: KPC context (Tn4401)\n")
+cat("The table below summarizes deletions, structural/SNP profiles, and flanking sequences inferred by TETyper.\n\n")
+```
+
+
+```{r tetyper_table, echo=FALSE, results='asis', message=FALSE, warning=FALSE, eval=has_tetyper}
+df <- get("tetyper_df_internal", envir = .GlobalEnv)
+valid_idx <- get("tetyper_valid_idx_internal", envir = .GlobalEnv)
+
+show <- df[which(valid_idx), , drop = FALSE]
+
+# 보기 좋은 핵심 컬럼만 우선 노출(있을 때만)
+pref_cols <- c(
+  "Sample", "Structural Variant", "Struct Profile",
+  "SNP Variant", "SNPs (Hom)", "SNPs (Het)",
+  "Combined Variant",
+  "Left flanks", "Right flanks",
+  "Left flank counts", "Right flank counts",
+  "Deletions", "Region presence"
+)
+cols <- intersect(pref_cols, colnames(show))
+if (length(cols) == 0) cols <- colnames(show)
+
+DT::datatable(
+  show[, cols, drop = FALSE],
+  extensions = "Buttons",
+  options = list(
+    dom = "frtipB",
+    buttons = c("excel","csv"),
+    pageLength = 50,
+    scrollX = TRUE,
+    scrollY = "300px"
+  )
+)
+
+
+```{r tetyper_line, echo=FALSE, results='asis', eval=has_tetyper}
+cat("***")
+```
+
+
+
+```{r logo, echo=FALSE, out.width='50%', fig.align='center'}
+knitr::include_graphics("/home/uhlemann/heekuk_path/GoWGS/scripts/Columbia_CUIMC_Uhlemann4.png")
+```

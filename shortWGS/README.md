@@ -9,7 +9,8 @@ Bacterial Illumina WGS workflow for QC, species inference, genotyping, and final
 ## Current Entrypoints
 
 - Wrapper: `Go_shortWGS.sh`
-- Snakefile: `Go_shortWGS_V9_docker.smk`
+- Snakefile (current): `Go_shortWGS_V10_docker.smk`
+- Snakefile (legacy): `Go_shortWGS_V9_docker.smk`
 
 ## Pipeline
 
@@ -17,7 +18,7 @@ Bacterial Illumina WGS workflow for QC, species inference, genotyping, and final
 flowchart LR
   A[Paired FASTQ] --> B[Prefilter gzip + pair check]
   B --> C[fastp]
-  C --> D[Kraken2 species]
+  C --> D[Kraken2 species + top1/2/3 + unclassified]
   D --> E[SRST2: MLST/ARG/Plasmid]
   E --> F[TETyper_modi]
   F --> G[MultiQC + CSV summary]
@@ -138,6 +139,10 @@ WGS_DB2/
 OUT/
   1_fastp_out/
   2a_kraken2/
+    <sample>.kreport
+    <sample>.top_species.txt
+    kraken2_summary.csv
+    kraken2_db_info.txt
   2_ST_srst2_out/
   3_ARGs_srst2_out/
   4_Plasmid_srst2_out/
@@ -152,6 +157,8 @@ OUT/
 
 Key files:
 
+- `2a_kraken2/kraken2_summary.csv` (Sample, Top1, Top2, Top3, Unclassified)
+- `2a_kraken2/kraken2_db_info.txt` (DB path/name used in Kraken2)
 - `2_ST_srst2_out/mlst_master.csv`
 - `5_TETyper/tetyper_summary.json`
 - `summary_master.csv`
@@ -171,6 +178,8 @@ Prefilter artifacts (sibling of input FASTQ dir):
   - `gzip -t` integrity check
   - R1/R2 pairing validation
   - bad files moved out of input directory
+- V10 report adds `Kraken2 Result` section between `Master Summary table` and `MLST Result`.
+- Kraken2 DB name is shown in the HTML report from runtime `kraken_db` setting.
 - Progress is printed only when status changes.
 - Lock errors are auto-handled (`--unlock` then retry).
 - `INT/TERM` interrupt handling is enabled in wrapper.
