@@ -4,7 +4,21 @@
 ![Workflow](https://img.shields.io/badge/Workflow-Snakemake-039be5)
 ![Container](https://img.shields.io/badge/Runtime-Docker-0db7ed)
 
-Bacterial ONT WGS workflow for assembly, polishing, QC, coverage, and annotation.
+Bacterial ONT WGS workflow for assembly, polishing, QC, coverage, Kraken2 contamination screening, and annotation.
+
+## Version Notes
+
+- `V6_2`
+  - adds `dnaapler` reorientation after Autocycler combine
+  - converts reoriented GFA to FASTA with `autocycler gfa2fasta` before Medaka
+  - generates `autocycler_metrics.tsv`
+  - writes Autocycler metrics into the summary Excel as `AutocyclerTable`
+  - runs `plassembler` on the full QC read set while keeping `raven`, `miniasm`, and `flye` on Autocycler subsamples
+  - keeps existing `plassembler` cluster weighting (`Autocycler_cluster_weight=3`)
+  - includes `dnaapler` and `filtlong` in the Docker image toolset
+
+- `V6_1`
+  - baseline Docker Snakefile with Autocycler, Medaka, CheckM2, Kraken2, Bakta, and summary workbook output
 
 ## Current Entrypoint
 
@@ -13,6 +27,8 @@ Use `Go_longWGS_V1_1.sh` as the current wrapper.
 ```bash
 ./longWGS/Go_longWGS_V1_1.sh -h
 ```
+
+Latest Docker Snakefile: `Go_longWGS_V6_2_docker.smk`
 
 ## Pipeline
 
@@ -26,8 +42,9 @@ flowchart LR
   D --> E[Medaka polish]
   E --> F[QUAST + CheckM2]
   F --> G[Coverage]
-  G --> H[Bakta annotation]
-  H --> I[Optional Bandage images]
+  G --> H[Kraken2 on clean reads]
+  H --> I[Bakta annotation]
+  I --> J[Optional Bandage images]
 ```
 
 ## Requirements
@@ -38,7 +55,9 @@ flowchart LR
 - DB directory mounted as `-d`, including:
   - `medaka_models/`
   - `plassembler_db/`
-  - databases used by rules (for example Bakta and CheckM2)
+  - `bakta_DB/`
+  - `CheckM2_database/`
+  - `kraken2DB/` or `kraken2_db/` or `kraken_db/` containing a Kraken2 database
 
 ## Build
 
@@ -55,9 +74,12 @@ Main tools included in the image (pipeline-dependent):
 
 - `snakemake`
 - `autocycler`
+- `dnaapler`
+- `filtlong`
 - `medaka`
 - `quast`
 - `checkm2`
+- `kraken2`
 - `bakta`
 - `samtools`
 - supporting utilities used by workflow rules
@@ -90,13 +112,37 @@ fastq_pass/
   ...
 ```
 
-**Map file format** (tab or space separated, `sample  barcode`):
+**Map file format** (tab or space separated):
+
+Recommended with header:
+
+```text
+old  new
+barcode01  KP0011
+barcode02  KP0063
+...
+```
+
+Headerless format is also supported and is interpreted by default as `old  new`:
+
+```text
+barcode01  KP0011
+barcode02  KP0063
+...
+```
+
+Legacy `sample  barcode` files are still supported for backward compatibility:
 
 ```text
 KP0011  barcode01
 KP0063  barcode02
 ...
 ```
+
+Recognized header aliases:
+
+- old-name column: `old`, `old_name`, `current`, `current_name`, `source`, `from`, `barcode`
+- new-name column: `new`, `new_name`, `sample`, `sample_name`, `target`, `to`
 
 **Run:**
 
@@ -109,6 +155,8 @@ bash Go_merge_rename.sh -i fastq_pass -o merged_fastqs -m samples_barcodes.txt
 ```
 
 The `merged_fastqs/` directory is then used as input (`-i`) for the pipeline.
+
+The same rename-table convention is also supported by `Go_rename_barcodes.sh` for renaming completed longWGS output directories later.
 
 ## Quick Start
 
@@ -174,9 +222,11 @@ OUTDIR/
   4_medaka/
   5_checkm2/
   6_coverage/
+  7a_kraken2/
   7_bakta/
   8_Bandage_image/          # created when Bandage step runs
   0_failed_samples.tsv      # created by workflow on rule failures
+  checkm2_coverage_summary.xlsx
 ```
 
 Prefilter artifacts:
@@ -212,6 +262,8 @@ Enable porechop:
 
 - `docker: image not found longwgs`
   - build with `docker build -t longwgs longWGS`
+- `Kraken2 DB not found under DB root`
+  - place a Kraken2 DB under `DB/kraken2DB/<your_db>` or `DB/kraken2_db/<your_db>`
 - lock-related failure in log
   - wrapper already retries with `--unlock`
 - repeated prefilter not running

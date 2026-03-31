@@ -25,17 +25,19 @@ RUN micromamba create -y -n longwgs -c conda-forge -c bioconda \
       python=3.11 \
       snakemake-minimal=8.* \
       pandas openpyxl biopython \
-      samtools minimap2 \
+      samtools minimap2 kraken2 \
       racon raven-assembler \
-      porechop_abi nanofilt \
+      porechop_abi nanofilt filtlong dnaapler \
       medaka=2.1.1 \
       flye miniasm minipolish plassembler autocycler \
       bakta=1.12.0 blast=2.17.* \
     && micromamba clean -a -y
 
 # Fail the image build early if key helper tools are not available.
-RUN micromamba run -n longwgs plassembler --help >/dev/null \
- && micromamba run -n longwgs minipolish --help >/dev/null
+RUN micromamba run -n longwgs autocycler --help >/dev/null \
+ && micromamba run -n longwgs minipolish --help >/dev/null \
+ && micromamba run -n longwgs filtlong --help >/dev/null \
+ && micromamba run -n longwgs dnaapler --help >/dev/null
  
 
 # -----------------------------

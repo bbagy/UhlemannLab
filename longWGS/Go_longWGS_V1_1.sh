@@ -198,6 +198,9 @@ stage_done_count() {
     coverage)
       find "$OUTPUT/6_coverage" -mindepth 2 -maxdepth 2 -type f -name "DONE.txt" 2>/dev/null | wc -l | tr -d ' '
       ;;
+    kraken2)
+      find "$OUTPUT/7a_kraken2" -maxdepth 1 -type f -name "*.done.txt" 2>/dev/null | wc -l | tr -d ' '
+      ;;
     bakta)
       find "$OUTPUT/7_bakta" -mindepth 2 -maxdepth 2 -type f -name "DONE.txt" 2>/dev/null | wc -l | tr -d ' '
       ;;
@@ -273,7 +276,7 @@ progress_snapshot() {
   local now
   local total
   local bad
-  local s_qc s_quast s_autocycler s_medaka s_checkm2 s_coverage s_bakta
+  local s_qc s_quast s_autocycler s_medaka s_checkm2 s_coverage s_kraken2 s_bakta
   now="$(date '+%H:%M:%S')"
   total="$(valid_fastq_count)"
   bad="$(bad_fastq_count)"
@@ -283,9 +286,10 @@ progress_snapshot() {
   s_medaka="$(stage_status medaka "$total")"
   s_checkm2="$(stage_status checkm2 "$total")"
   s_coverage="$(stage_status coverage "$total")"
+  s_kraken2="$(stage_status kraken2 "$total")"
   s_bakta="$(stage_status bakta "$total")"
-  printf "[Go_longWGS][Progress][%s][%s] total=%s bad=%s 1_QC=%s 2_quast=%s 3_autocycler=%s 4_medaka=%s 5_checkm2=%s 6_coverage=%s 7_bakta=%s\n" \
-    "$stage" "$now" "$total" "$bad" "$s_qc" "$s_quast" "$s_autocycler" "$s_medaka" "$s_checkm2" "$s_coverage" "$s_bakta"
+  printf "[Go_longWGS][Progress][%s][%s] total=%s bad=%s 1_QC=%s 2_quast=%s 3_autocycler=%s 4_medaka=%s 5_checkm2=%s 6_coverage=%s 7a_kraken2=%s 7_bakta=%s\n" \
+    "$stage" "$now" "$total" "$bad" "$s_qc" "$s_quast" "$s_autocycler" "$s_medaka" "$s_checkm2" "$s_coverage" "$s_kraken2" "$s_bakta"
 }
 
 start_progress_monitor() {
@@ -325,7 +329,7 @@ stop_progress_monitor() {
   fi
 }
 
-SNAKEFILE_NAME="Go_longWGS.smk"
+SNAKEFILE_NAME="Go_longWGS_V6_1_docker.smk"
 if [ ! -f "$PIPELINE_DIR/$SNAKEFILE_NAME" ]; then
   echo "[Go_longWGS][FATAL] Snakefile not found: $PIPELINE_DIR/$SNAKEFILE_NAME"
   exit 1
@@ -338,6 +342,7 @@ CMD="snakemake --snakefile /pipeline/$SNAKEFILE_NAME \
 threads=$DEFAULT_THREADS jobs=$DEFAULT_AUTOCYCLER_JOBS do_porechop=$PORECHOP \
 qc_threads=$DEFAULT_THREADS medaka_threads=$DEFAULT_THREADS quast_threads=$DEFAULT_THREADS \
 checkm2_threads=$DEFAULT_THREADS cov_threads=$DEFAULT_THREADS bakta_threads=$DEFAULT_THREADS \
+kraken_threads=$DEFAULT_THREADS \
   --cores $DEFAULT_CORES --rerun-incomplete --rerun-triggers mtime"
 
 if [ "$DRYRUN" -eq 1 ]; then
