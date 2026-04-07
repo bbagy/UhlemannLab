@@ -120,6 +120,17 @@ p, li {
   margin-top: 12px;
 }
 
+.image-card {
+  overflow-x: auto;
+}
+
+.pipeline-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+
 .status-banner {
   margin-top: 12px;
   border-radius: 12px;
