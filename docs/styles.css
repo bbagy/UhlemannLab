@@ -126,9 +126,17 @@ p, li {
 
 .pipeline-image {
   display: block;
+  width: 70%;
   max-width: 100%;
   height: auto;
+  margin: 0 auto;
   border-radius: 10px;
+}
+
+@media (max-width: 900px) {
+  .pipeline-image {
+    width: 100%;
+  }
 }
 
 .status-banner {
