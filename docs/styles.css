@@ -222,6 +222,34 @@ p, li {
   color: #3f727a;
 }
 
+.theme-kbracken .badge {
+  border-color: #d4b27a;
+  color: #755117;
+  background: #fbf2df;
+}
+.theme-kbracken .node {
+  border-color: #d1ad72;
+  background: #fff7e8;
+  color: #6f4c15;
+}
+.theme-kbracken .arrow {
+  color: #8a6a32;
+}
+
+.theme-mags .badge {
+  border-color: #a6b58d;
+  color: #4d6a1f;
+  background: #f1f7e8;
+}
+.theme-mags .node {
+  border-color: #a7b98b;
+  background: #f6fbef;
+  color: #48641e;
+}
+.theme-mags .arrow {
+  color: #6f8742;
+}
+
 .workstation-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

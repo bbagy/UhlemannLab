@@ -29,7 +29,7 @@ RUN micromamba create -y -n longwgs -c conda-forge -c bioconda \
       racon raven-assembler \
       porechop_abi nanofilt filtlong dnaapler \
       medaka=2.1.1 \
-      flye miniasm minipolish plassembler autocycler \
+      flye miniasm minipolish "plassembler>=1.6" autocycler \
       bakta=1.12.0 blast=2.17.* \
     && micromamba clean -a -y
 
@@ -37,7 +37,8 @@ RUN micromamba create -y -n longwgs -c conda-forge -c bioconda \
 RUN micromamba run -n longwgs autocycler --help >/dev/null \
  && micromamba run -n longwgs minipolish --help >/dev/null \
  && micromamba run -n longwgs filtlong --help >/dev/null \
- && micromamba run -n longwgs dnaapler --help >/dev/null
+ && micromamba run -n longwgs dnaapler --help >/dev/null \
+ && micromamba run -n longwgs plassembler --version >/dev/null
  
 
 # -----------------------------

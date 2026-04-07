@@ -383,6 +383,10 @@ rule autocycler_assembly:
           --genome_size "$genome_size" \
           2>> autocycler.stderr || fail_and_exit "subsample_failed"
 
+        echo "[autocycler] prepare full-read plassembler input ..."
+        full_reads_fastq="full_reads_for_plassembler.fastq"
+        zcat "$reads" > "$full_reads_fastq"
+
         mkdir -p assemblies
         rm -f assemblies/jobs.txt
 
@@ -401,7 +405,7 @@ rule autocycler_assembly:
         # Keep plasmid-sensitive assembly on the full QC read set so low-abundance
         # plasmid reads are not lost during the Autocycler subsampling step.
         echo "autocycler helper plassembler \
-          --reads $reads \
+          --reads $full_reads_fastq \
           --out_prefix assemblies/plassembler_full \
           --threads $threads \
           --genome_size $genome_size \
@@ -437,7 +441,7 @@ rule autocycler_assembly:
         done
         shopt -u nullglob
 
-        rm -f subsampled_reads/*.fastq
+        rm -f subsampled_reads/*.fastq "$full_reads_fastq"
 
         echo "[autocycler] compress ..."
         autocycler compress -i assemblies -a autocycler_out 2>> autocycler.stderr || fail_and_exit "compress_failed"
@@ -473,9 +477,9 @@ rule autocycler_assembly:
 
 rule autocycler_reorient_with_dnaapler:
     input:
+        fasta=os.path.join(AUTOCYCLER_DIR, "{sample}", "autocycler_out", "consensus_assembly.fasta"),
         gfa=os.path.join(AUTOCYCLER_DIR, "{sample}", "autocycler_out", "consensus_assembly.gfa")
     output:
-        gfa=os.path.join(AUTOCYCLER_DIR, "{sample}", "autocycler_out", "consensus_assembly.reoriented.gfa"),
         fasta=os.path.join(AUTOCYCLER_DIR, "{sample}", "autocycler_out", "consensus_assembly.reoriented.fasta"),
         done=os.path.join(AUTOCYCLER_DIR, "{sample}", "autocycler_out", "dnaapler.done.txt")
     threads: DNAAPLER_THREADS
@@ -489,29 +493,28 @@ rule autocycler_reorient_with_dnaapler:
         [ -f "$fail_log" ] || echo -e "sample\tstage\treason" > "$fail_log"
         trap 'echo -e "{wildcards.sample}\tdnaapler\tcommand_failed" >> "$fail_log"' ERR
 
-        in_gfa=$(realpath "{input.gfa}")
-        outdir=$(dirname "{output.gfa}")
+        in_fasta=$(realpath "{input.fasta}")
+        outdir=$(dirname "{output.fasta}")
         tmpdir="$outdir/dnaapler_out"
         mkdir -p "$outdir"
         rm -rf "$tmpdir"
-        mkdir -p "$tmpdir"
+        rm -f "{output.fasta}" "{output.done}"
 
         dnaapler all \
-          -i "$in_gfa" \
+          -i "$in_fasta" \
           -o "$tmpdir" \
           -p "{wildcards.sample}" \
           -t {threads}
 
-        reoriented_gfa=$(find "$tmpdir" -type f -name "*.gfa" ! -path "*/log/*" | head -n 1 || true)
-        if [ -z "$reoriented_gfa" ]; then
-            echo -e "{wildcards.sample}\tdnaapler\treoriented_gfa_missing" >> "$fail_log"
-            echo "[dnaapler][ERROR] Reoriented GFA not found for {wildcards.sample}" 1>&2
+        reoriented_fasta=$(find "$tmpdir" -type f -name "*.fasta" ! -path "*/log/*" | head -n 1 || true)
+        if [ -z "$reoriented_fasta" ]; then
+            echo -e "{wildcards.sample}\tdnaapler\treoriented_fasta_missing" >> "$fail_log"
+            echo "[dnaapler][ERROR] Reoriented FASTA not found for {wildcards.sample}" 1>&2
             find "$tmpdir" -maxdepth 3 -type f 1>&2 || true
             exit 1
         fi
 
-        cp "$reoriented_gfa" "{output.gfa}"
-        autocycler gfa2fasta -i "{output.gfa}" -o "{output.fasta}"
+        cp "$reoriented_fasta" "{output.fasta}"
         echo "DONE" > "{output.done}"
         """
 

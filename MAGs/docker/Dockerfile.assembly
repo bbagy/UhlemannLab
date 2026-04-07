@@ -1,0 +1,36 @@
+FROM mambaorg/micromamba:1.5.10
+
+LABEL author="Heekuk Park"
+LABEL project="MAGs-Assembly"
+
+ENV ENV_NAME=mags-assembly
+
+RUN micromamba create -y -n ${ENV_NAME} \
+    -c conda-forge -c bioconda \
+    python=3.10 \
+    snakemake=8.25.3 \
+    pandas \
+    megahit \
+    quast \
+    bowtie2 \
+    samtools \
+    metabat2 \
+    maxbin2 \
+    concoct \
+    das_tool \
+    checkm-genome \
+    coreutils \
+    findutils \
+    gawk \
+    lsof \
+    util-linux \
+    procps-ng \
+    sysstat \
+    bc \
+    && micromamba clean --all --yes
+
+ENV PATH=/opt/conda/envs/${ENV_NAME}/bin:$PATH
+ENV CONDA_DEFAULT_ENV=${ENV_NAME}
+
+WORKDIR /work
+CMD ["bash"]

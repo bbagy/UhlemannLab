@@ -1,0 +1,32 @@
+FROM mambaorg/micromamba:1.5.10
+
+LABEL author="Heekuk Park"
+LABEL project="MAGs-Annotation"
+
+ENV ENV_NAME=mags-annotation
+
+RUN micromamba create -y -n ${ENV_NAME} \
+    -c conda-forge -c bioconda \
+    python=3.10 \
+    snakemake=8.25.3 \
+    pandas \
+    gtdbtk \
+    prokka \
+    eggnog-mapper \
+    kofamscan \
+    diamond \
+    hmmer \
+    coreutils \
+    findutils \
+    gawk \
+    util-linux \
+    procps-ng \
+    sysstat \
+    bc \
+    && micromamba clean --all --yes
+
+ENV PATH=/opt/conda/envs/${ENV_NAME}/bin:$PATH
+ENV CONDA_DEFAULT_ENV=${ENV_NAME}
+
+WORKDIR /work
+CMD ["bash"]

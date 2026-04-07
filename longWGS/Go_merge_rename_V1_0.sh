@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Go_merge_rename.sh
+# Go_merge_rename_V1_0.sh
 # Step 1: Merge per-barcode fastq.gz files into single files
 # Step 2: Rename merged outputs from old names to new names using a map file
 
@@ -9,21 +9,29 @@ INPUT_DIR=""
 OUTPUT_DIR=""
 MAP_FILE=""
 DRYRUN=false
+MERGE_UNTIL_SIZE=""
+MERGE_UNTIL_BYTES=0
 
 usage() {
     cat <<'EOF'
 Usage:
-  bash Go_merge_rename.sh -i INPUT_DIR -o OUTPUT_DIR -m MAP_FILE [-n]
-  bash Go_merge_rename.sh -h
+  bash Go_merge_rename_V1_0.sh -i INPUT_DIR -o OUTPUT_DIR -m MAP_FILE [-n] [--merge-until-size 200M]
+  bash Go_merge_rename_V1_0.sh -h
 
 Description:
   Merge per-barcode FASTQ files into one FASTQ per input directory, then rename
   the merged outputs from old names to new names.
+  If --merge-until-size is given, files are merged whole-file at a time until
+  the cumulative compressed size reaches or exceeds the requested limit.
+  Files are never cut mid-gzip file.
 
 Options:
   -i INPUT_DIR   directory containing per-barcode subdirectories (e.g. fastq_pass/)
   -o OUTPUT_DIR  output directory for merged fastq.gz files
   -m MAP_FILE    rename table
+  --merge-until-size SIZE
+                 merge whole .fastq.gz files until SIZE is reached
+                 examples: 200M, 500M, 1G
   -n             dry-run only
   -h             show this help
 
@@ -55,20 +63,74 @@ Recognized header names:
     new, new_name, sample, sample_name, target, to
 
 Examples:
-  bash Go_merge_rename.sh -i fastq_pass -o merged_fastqs -m rename_map.tsv -n
-  bash Go_merge_rename.sh -i fastq_pass -o merged_fastqs -m rename_map.tsv
+  bash Go_merge_rename_V1_0.sh -i fastq_pass -o merged_fastqs -m rename_map.tsv -n
+  bash Go_merge_rename_V1_0.sh -i fastq_pass -o merged_fastqs -m rename_map.tsv
+  bash Go_merge_rename_V1_0.sh -i fastq_pass -o merged_fastqs -m rename_map.tsv --merge-until-size 500M
 EOF
     exit "${1:-1}"
 }
 
-while getopts ":i:o:m:nh" opt; do
-    case $opt in
-        i) INPUT_DIR="$OPTARG" ;;
-        o) OUTPUT_DIR="$OPTARG" ;;
-        m) MAP_FILE="$OPTARG" ;;
-        n) DRYRUN=true ;;
-        h) usage 0 ;;
-        *) usage ;;
+parse_size_to_bytes() {
+    local raw="${1:-}"
+    local num suffix
+    if [[ ! "$raw" =~ ^([0-9]+)([KMG]?)$ ]]; then
+        echo "ERROR: invalid size '$raw'. Use values like 200M, 500M, 1G, 800K." >&2
+        exit 1
+    fi
+    num="${BASH_REMATCH[1]}"
+    suffix="${BASH_REMATCH[2]}"
+    case "$suffix" in
+        K) echo $((num * 1024)) ;;
+        M) echo $((num * 1024 * 1024)) ;;
+        G) echo $((num * 1024 * 1024 * 1024)) ;;
+        "") echo "$num" ;;
+        *)
+            echo "ERROR: unsupported size suffix in '$raw'." >&2
+            exit 1
+            ;;
+    esac
+}
+
+file_size_bytes() {
+    local f="$1"
+    if stat -c %s "$f" >/dev/null 2>&1; then
+        stat -c %s "$f"
+    else
+        stat -f %z "$f"
+    fi
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -i)
+            INPUT_DIR="${2:-}"
+            shift 2
+            ;;
+        -o)
+            OUTPUT_DIR="${2:-}"
+            shift 2
+            ;;
+        -m)
+            MAP_FILE="${2:-}"
+            shift 2
+            ;;
+        -n)
+            DRYRUN=true
+            shift
+            ;;
+        --merge-until-size)
+            [[ $# -ge 2 ]] || { echo "ERROR: --merge-until-size requires a value." >&2; exit 1; }
+            MERGE_UNTIL_SIZE="$2"
+            MERGE_UNTIL_BYTES="$(parse_size_to_bytes "$2")"
+            shift 2
+            ;;
+        -h|--help)
+            usage 0
+            ;;
+        *)
+            echo "ERROR: unknown argument: $1" >&2
+            usage 1
+            ;;
     esac
 done
 
@@ -81,6 +143,9 @@ if $DRYRUN; then
     echo "=== DRY-RUN MODE (pass without -n to apply) ==="
 else
     echo "=== EXECUTE MODE ==="
+fi
+if [[ -n "$MERGE_UNTIL_SIZE" ]]; then
+    echo "=== MERGE LIMIT: $MERGE_UNTIL_SIZE (${MERGE_UNTIL_BYTES} bytes) ==="
 fi
 echo ""
 
@@ -150,49 +215,50 @@ done < "$MAP_FILE"
 echo "Loaded ${#MAP[@]} rename mappings (old_name → new_name)"
 echo ""
 
-# ── Step 1: Merge ─────────────────────────────────────────────────────────────
-echo "── Step 1: Merge ────────────────────────────────────"
+# ── Step 1: Merge + rename immediately ───────────────────────────────────────
+echo "── Step 1: Merge + rename ───────────────────────────"
 $DRYRUN || mkdir -p "$OUTPUT_DIR"
 
 for barcode in $(ls "$INPUT_DIR" | grep barcode | sort); do
     src_dir="$INPUT_DIR/$barcode"
     [ -d "$src_dir" ] || continue
 
-    n_files=$(ls "$src_dir"/*.fastq.gz 2>/dev/null | wc -l | tr -d ' ')
+    mapfile -t fastq_files < <(find "$src_dir" -maxdepth 1 -type f -name "*.fastq.gz" | sort)
+    n_files="${#fastq_files[@]}"
     if [ "$n_files" -eq 0 ]; then
         echo "  [SKIP] $barcode : no fastq.gz files"
         continue
     fi
 
-    out="$OUTPUT_DIR/${barcode}.fastq.gz"
+    target_name="${MAP[$barcode]:-$barcode}"
+    out="$OUTPUT_DIR/${target_name}.fastq.gz"
     if [ -f "$out" ]; then
         echo "  [SKIP-exists] $out"
         continue
     fi
 
-    echo "  MERGE: $src_dir/*.fastq.gz (${n_files} files) → $out"
-    $DRYRUN || cat "$src_dir"/*.fastq.gz > "$out"
-done
-echo ""
+    selected_files=()
+    selected_count=0
+    cumulative_bytes=0
 
-# ── Step 2: Rename ────────────────────────────────────────────────────────────
-echo "── Step 2: Rename ───────────────────────────────────"
-for old_name in "${!MAP[@]}"; do
-    new_name="${MAP[$old_name]}"
-    src="$OUTPUT_DIR/${old_name}.fastq.gz"
-    dst="$OUTPUT_DIR/${new_name}.fastq.gz"
+    for f in "${fastq_files[@]}"; do
+        selected_files+=("$f")
+        selected_count=$((selected_count + 1))
+        cumulative_bytes=$((cumulative_bytes + $(file_size_bytes "$f")))
+        if [[ "$MERGE_UNTIL_BYTES" -gt 0 && "$cumulative_bytes" -ge "$MERGE_UNTIL_BYTES" ]]; then
+            break
+        fi
+    done
 
-    if [ ! -f "$src" ]; then
-        echo "  [SKIP-notfound] $src"
-        continue
-    fi
-    if [ -f "$dst" ]; then
-        echo "  [SKIP-exists]   $dst"
-        continue
+    if [[ "$selected_count" -eq "$n_files" ]]; then
+        echo "  MERGE: $barcode -> ${target_name}.fastq.gz (${selected_count}/${n_files} files, max possible; bytes=$cumulative_bytes)"
+    else
+        echo "  MERGE: $barcode -> ${target_name}.fastq.gz (${selected_count}/${n_files} files, bytes=$cumulative_bytes, limit=$MERGE_UNTIL_BYTES)"
     fi
 
-    echo "  RENAME: ${old_name}.fastq.gz  →  ${new_name}.fastq.gz"
-    $DRYRUN || mv "$src" "$dst"
+    if ! $DRYRUN; then
+        cat "${selected_files[@]}" > "$out"
+    fi
 done
 echo ""
 
@@ -201,6 +267,6 @@ if $DRYRUN; then
 else
     echo "Done."
     echo ""
-    echo "Merged & renamed files in: $OUTPUT_DIR"
+    echo "Merged files in final names: $OUTPUT_DIR"
     ls "$OUTPUT_DIR"/*.fastq.gz 2>/dev/null | sort | xargs -I{} basename {}
 fi

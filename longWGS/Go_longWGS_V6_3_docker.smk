@@ -1,10 +1,10 @@
 #############################################
-# Go_autocycler.smk
-# 20260213
+# Go_longWGS_V6_3_docker.smk
+# 20260401
 # Heekuk Park
 #
 # Pipeline:
-#   QC → autocycler → medaka → quast → checkm2 → coverage → bakta → bandage
+#   QC → autocycler → medaka → quast → checkm2 → coverage → kraken2 → bakta → bandage
 #
 # OUTDIR/
 # └── 1_QC/             (porechop_abi + NanoFilt output: *.clean.fastq.gz)
@@ -13,12 +13,15 @@
 # └── 4_medaka/         ({sample}_final_assembly.fasta)
 # └── 5_checkm2/        ({sample}/quality_report.tsv + DONE.txt + raw/)
 # └── 6_coverage/       ({sample}.sorted.bam + {sample}_contig_mean_depth.tsv + DONE.txt)
+# └── 7a_kraken2/       ({sample}.kreport + kraken2_summary.csv + db_info)
 # └── 7_bakta/          ({sample}/DONE.txt + outputs)
 #
 # DB structure (single root):
 #   DB_ROOT/
 #     ├── bakta_DB/
 #     └── CheckM2_database/
+#     └── kraken2DB/ or kraken2_db/ or kraken_db/
+#         └── <kraken_db_files>
 #
 # Example run:
 # dir="test"
@@ -30,7 +33,7 @@
 #   --cores 8 --rerun-incomplete --keep-going
 #############################################
 
-import os, glob, json
+import os, glob, json, shlex
 
 
 # ----------------
@@ -54,6 +57,7 @@ MEDAKA_MODEL    = str(config.get("medaka_model", "")).strip()
 MEDAKA_FALLBACK_MODEL = str(
     config.get("medaka_fallback_model", MEDAKA_MODEL if MEDAKA_MODEL else "r1041_e82_400bps_hac_g632")
 ).strip()
+DNAAPLER_THREADS = int(config.get("dnaapler_threads", MEDAKA_THREADS))
 
 QUAST_THREADS   = int(config.get("quast_threads", 2))
 QUAST_MIN_CONTIG= int(config.get("quast_min_contig", 500))
@@ -62,24 +66,91 @@ CHECKM2_THREADS = int(config.get("checkm2_threads", 2))
 
 COV_THREADS     = int(config.get("cov_threads", 2))
 
+KRAKEN_THREADS  = int(config.get("kraken_threads", 2))
+
 BAKTA_THREADS   = int(config.get("bakta_threads", 2))
 
 # Stage memory limits (override via --config)
 QC_MEM_MB         = int(config.get("qc_mem_mb", 8000))
 AUTOCYCLER_MEM_MB = int(config.get("autocycler_mem_mb", 32000))
 MEDAKA_MEM_MB     = int(config.get("medaka_mem_mb", 32000))
+DNAAPLER_MEM_MB   = int(config.get("dnaapler_mem_mb", 8000))
 QUAST_MEM_MB      = int(config.get("quast_mem_mb", 16000))
 CHECKM2_MEM_MB    = int(config.get("checkm2_mem_mb", 32000))
 COV_MEM_MB        = int(config.get("cov_mem_mb", 32000))
+KRAKEN_MEM_MB     = int(config.get("kraken_mem_mb", 32000))
 BAKTA_MEM_MB      = int(config.get("bakta_mem_mb", 32000))
 SUMMARY_MEM_MB    = int(config.get("summary_mem_mb", 4000))
 
 TMPDIR          = config.get("tmpdir", "")
 
-# Single DB root (contains both bakta + checkm2 DBs)
+# Single DB root (contains bakta + checkm2 + optional kraken2 DB)
 DB_ROOT = config.get("database", "")
 # porechop 조건 가동
 DO_PORECHOP = int(config.get("do_porechop", 1))
+
+
+def _is_kraken_db_dir(path):
+    if not path or not os.path.isdir(path):
+        return False
+    # Kraken2 DB layouts vary a bit depending on build/distribution style.
+    # Accept either the classic trio (opts/hash/taxo) or lighter layouts that
+    # still contain the core hash file plus taxonomy/index sidecars.
+    markers = {name: os.path.exists(os.path.join(path, name)) for name in [
+        "hash.k2d",
+        "opts.k2d",
+        "taxo.k2d",
+        "nodes.dmp",
+        "seqid2taxid.map",
+        "inspect.txt",
+    ]}
+
+    if markers["hash.k2d"] and (markers["opts.k2d"] or markers["taxo.k2d"]):
+        return True
+
+    if markers["hash.k2d"] and (markers["nodes.dmp"] or markers["seqid2taxid.map"] or markers["inspect.txt"]):
+        return True
+
+    return False
+
+
+def _find_kraken_db(db_root):
+    explicit = str(config.get("kraken_db", "")).strip()
+    if explicit:
+        return explicit
+
+    if not db_root:
+        return ""
+
+    candidates = [
+        os.path.join(db_root, "kraken2DB"),
+        os.path.join(db_root, "kraken2_db"),
+        os.path.join(db_root, "kraken_db"),
+        os.path.join(db_root, "Kraken2DB"),
+        os.path.join(db_root, "Kraken2_db"),
+    ]
+
+    for cand in candidates:
+        if _is_kraken_db_dir(cand):
+            return cand
+
+    child_hits = []
+    for cand in candidates:
+        if os.path.isdir(cand):
+            for child in sorted(glob.glob(os.path.join(cand, "*"))):
+                if _is_kraken_db_dir(child):
+                    child_hits.append(child)
+    if len(child_hits) == 1:
+        return child_hits[0]
+
+    shallow_hits = []
+    for child in sorted(glob.glob(os.path.join(db_root, "*"))):
+        if _is_kraken_db_dir(child):
+            shallow_hits.append(child)
+    if len(shallow_hits) == 1:
+        return shallow_hits[0]
+
+    return ""
 
 
 # ----------------
@@ -91,8 +162,10 @@ AUTOCYCLER_DIR = os.path.join(OUTDIR, "3_autocycler")
 MEDAKA_DIR     = os.path.join(OUTDIR, "4_medaka")
 CHECKM2_DIR    = os.path.join(OUTDIR, "5_checkm2")
 COV_DIR        = os.path.join(OUTDIR, "6_coverage")
+KRAKEN_DIR     = os.path.join(OUTDIR, "7a_kraken2")
 BAKTA_DIR      = os.path.join(OUTDIR, "7_bakta")
 SUMMARY_XLSX   = os.path.join(OUTDIR, "checkm2_coverage_summary.xlsx")
+AUTOCYCLER_TABLE_TSV = os.path.join(OUTDIR, "autocycler_metrics.tsv")
 FAIL_LOG       = os.path.join(OUTDIR, "0_failed_samples.tsv")
 
 
@@ -101,6 +174,8 @@ FAIL_LOG       = os.path.join(OUTDIR, "0_failed_samples.tsv")
 # ----------------
 BAKTA_DB   = os.path.join(DB_ROOT, "bakta_DB") if DB_ROOT else ""
 CHECKM2_DB = os.path.join(DB_ROOT, "CheckM2_database", "uniref100.KO.1.dmnd") if DB_ROOT else ""
+KRAKEN_DB  = _find_kraken_db(DB_ROOT)
+KRAKEN_DB_NAME = os.path.basename(KRAKEN_DB.rstrip("/")) if KRAKEN_DB else ""
 
 # Safety checks (fail early)
 if DB_ROOT:
@@ -112,6 +187,12 @@ if DB_ROOT:
 
     if not os.path.isfile(CHECKM2_DB):
         raise ValueError(f"[Go_autocycler.smk] CheckM2 DB not found: {CHECKM2_DB}")
+
+    if not KRAKEN_DB:
+        raise ValueError(
+            "[Go_autocycler.smk] Kraken2 DB not found under DB root. "
+            "Expected e.g. DB_ROOT/kraken2DB/<db> or set --config kraken_db=/db/<path>"
+        )
 
 
 # ----------------
@@ -174,12 +255,17 @@ STRICT_ALL_INPUTS = [
     *expand(os.path.join(CHECKM2_DIR, "{sample}", "DONE.txt"), sample=SAMPLES),
     # coverage marker
     *expand(os.path.join(COV_DIR, "{sample}", "DONE.txt"), sample=SAMPLES),
+    # kraken2 outputs
+    *expand(os.path.join(KRAKEN_DIR, "{sample}.done.txt"), sample=SAMPLES),
+    os.path.join(KRAKEN_DIR, "kraken2_summary.csv"),
+    os.path.join(KRAKEN_DIR, "kraken2_db_info.txt"),
     # bakta marker
     *expand(os.path.join(BAKTA_DIR, "{sample}", "DONE.txt"), sample=SAMPLES),
+    AUTOCYCLER_TABLE_TSV,
     SUMMARY_XLSX
 ]
 
-PERMISSIVE_ALL_INPUTS = [SUMMARY_XLSX]
+PERMISSIVE_ALL_INPUTS = [AUTOCYCLER_TABLE_TSV, SUMMARY_XLSX]
 
 ALL_INPUTS = PERMISSIVE_ALL_INPUTS if PIPELINE_MODE == "permissive" else STRICT_ALL_INPUTS
 
@@ -297,10 +383,14 @@ rule autocycler_assembly:
           --genome_size "$genome_size" \
           2>> autocycler.stderr || fail_and_exit "subsample_failed"
 
+        echo "[autocycler] prepare full-read plassembler input ..."
+        full_reads_fastq="full_reads_for_plassembler.fastq"
+        zcat "$reads" > "$full_reads_fastq"
+
         mkdir -p assemblies
         rm -f assemblies/jobs.txt
 
-        for assembler in raven miniasm flye plassembler; do
+        for assembler in raven miniasm flye; do
             for i in 01 02 03 04; do
                 echo "autocycler helper $assembler \
                   --reads subsampled_reads/sample_$i.fastq \
@@ -311,6 +401,16 @@ rule autocycler_assembly:
                   --min_depth_rel 0.1" >> assemblies/jobs.txt
             done
         done
+
+        # Keep plasmid-sensitive assembly on the full QC read set so low-abundance
+        # plasmid reads are not lost during the Autocycler subsampling step.
+        echo "autocycler helper plassembler \
+          --reads $full_reads_fastq \
+          --out_prefix assemblies/plassembler_full \
+          --threads $threads \
+          --genome_size $genome_size \
+          --read_type $read_type \
+          --min_depth_rel 0.1" >> assemblies/jobs.txt
 
         set +e
         nice -n 19 parallel \
@@ -341,7 +441,7 @@ rule autocycler_assembly:
         done
         shopt -u nullglob
 
-        rm -f subsampled_reads/*.fastq
+        rm -f subsampled_reads/*.fastq "$full_reads_fastq"
 
         echo "[autocycler] compress ..."
         autocycler compress -i assemblies -a autocycler_out 2>> autocycler.stderr || fail_and_exit "compress_failed"
@@ -375,6 +475,121 @@ rule autocycler_assembly:
         """
 
 
+rule autocycler_reorient_with_dnaapler:
+    input:
+        fasta=os.path.join(AUTOCYCLER_DIR, "{sample}", "autocycler_out", "consensus_assembly.fasta"),
+        gfa=os.path.join(AUTOCYCLER_DIR, "{sample}", "autocycler_out", "consensus_assembly.gfa")
+    output:
+        fasta=os.path.join(AUTOCYCLER_DIR, "{sample}", "autocycler_out", "consensus_assembly.reoriented.fasta"),
+        done=os.path.join(AUTOCYCLER_DIR, "{sample}", "autocycler_out", "dnaapler.done.txt")
+    threads: DNAAPLER_THREADS
+    resources:
+        mem_mb=DNAAPLER_MEM_MB
+    shell:
+        r"""
+        set -euo pipefail
+        fail_log=$(realpath -m "{FAIL_LOG}")
+        mkdir -p "$(dirname "$fail_log")"
+        [ -f "$fail_log" ] || echo -e "sample\tstage\treason" > "$fail_log"
+        trap 'echo -e "{wildcards.sample}\tdnaapler\tcommand_failed" >> "$fail_log"' ERR
+
+        in_fasta=$(realpath "{input.fasta}")
+        outdir=$(dirname "{output.fasta}")
+        tmpdir="$outdir/dnaapler_out"
+        mkdir -p "$outdir"
+        rm -rf "$tmpdir"
+        rm -f "{output.fasta}" "{output.done}"
+
+        dnaapler all \
+          -i "$in_fasta" \
+          -o "$tmpdir" \
+          -p "{wildcards.sample}" \
+          -t {threads}
+
+        reoriented_fasta=$(find "$tmpdir" -type f -name "*.fasta" ! -path "*/log/*" | head -n 1 || true)
+        if [ -z "$reoriented_fasta" ]; then
+            echo -e "{wildcards.sample}\tdnaapler\treoriented_fasta_missing" >> "$fail_log"
+            echo "[dnaapler][ERROR] Reoriented FASTA not found for {wildcards.sample}" 1>&2
+            find "$tmpdir" -maxdepth 3 -type f 1>&2 || true
+            exit 1
+        fi
+
+        cp "$reoriented_fasta" "{output.fasta}"
+        echo "DONE" > "{output.done}"
+        """
+
+
+rule autocycler_make_metrics_table:
+    input:
+        expand(os.path.join(AUTOCYCLER_DIR, "{sample}", "autocycler_out", "consensus_assembly.gfa"), sample=SAMPLES)
+    params:
+        sample_dirs=" ".join(shlex.quote(os.path.join(AUTOCYCLER_DIR, sample)) for sample in SAMPLES)
+    output:
+        tsv=AUTOCYCLER_TABLE_TSV
+    threads: 1
+    resources:
+        mem_mb=SUMMARY_MEM_MB
+    shell:
+        r"""
+        set -euo pipefail
+        mkdir -p "$(dirname "{output.tsv}")"
+        raw_tsv="{output.tsv}.raw"
+        : > "$raw_tsv"
+
+        for sample_dir in {params.sample_dirs}; do
+            sample_name=$(basename "$sample_dir")
+            autocycler table -a "$sample_dir" -n "$sample_name" >> "$raw_tsv"
+        done
+
+        python - << 'PY'
+from pathlib import Path
+import csv
+
+raw_path = Path(r"{output.tsv}.raw")
+out_path = Path(r"{output.tsv}")
+
+rows = []
+with raw_path.open() as handle:
+    for line in handle:
+        line = line.rstrip("\n")
+        if not line.strip():
+            continue
+        rows.append(line.split("\t"))
+
+if not rows:
+    out_path.write_text("")
+    raise SystemExit(0)
+
+def looks_like_header(row):
+    if len(row) < 2:
+        return False
+    first = row[0].strip().lower()
+    second = row[1].strip().lower()
+    header_tokens = {"name", "sample", "read_count", "reads", "input_read_count"}
+    return first in header_tokens or second in header_tokens
+
+if looks_like_header(rows[0]):
+    header = rows[0]
+    data_rows = rows[1:]
+else:
+    max_cols = max(len(r) for r in rows)
+    header = ["sample"] + [f"metric_{i:02d}" for i in range(1, max_cols)]
+    data_rows = rows
+
+with out_path.open("w", newline="") as handle:
+    writer = csv.writer(handle, delimiter="\t")
+    writer.writerow(header)
+    for row in data_rows:
+        padded = row + [""] * (len(header) - len(row))
+        if padded == header:
+            continue
+        writer.writerow(padded[:len(header)])
+PY
+
+        rm -f "$raw_tsv"
+        """
+
+
 
 # ----------------
 # 4) Medaka polishing
@@ -382,7 +597,7 @@ rule autocycler_assembly:
 rule medaka_polish:
     input:
         fq=os.path.join(QC_DIR, "{sample}.clean.fastq.gz"),
-        draft=os.path.join(AUTOCYCLER_DIR, "{sample}", "autocycler_out", "consensus_assembly.fasta")
+        draft=os.path.join(AUTOCYCLER_DIR, "{sample}", "autocycler_out", "consensus_assembly.reoriented.fasta")
     output:
         final=os.path.join(MEDAKA_DIR, "{sample}_final_assembly.fasta")
     threads: MEDAKA_THREADS
@@ -623,9 +838,116 @@ rule coverage:
         """
 
 
+# ----------------
+# 7) Kraken2 (clean long reads)
+# ----------------
+rule kraken2_classify:
+    input:
+        fq=os.path.join(QC_DIR, "{sample}.clean.fastq.gz")
+    output:
+        kreport=os.path.join(KRAKEN_DIR, "{sample}.kreport"),
+        out=os.path.join(KRAKEN_DIR, "{sample}.kraken"),
+        done=os.path.join(KRAKEN_DIR, "{sample}.done.txt")
+    threads: KRAKEN_THREADS
+    resources:
+        mem_mb=KRAKEN_MEM_MB
+    shell:
+        r"""
+        set -euo pipefail
+        fail_log=$(realpath -m "{FAIL_LOG}")
+        mkdir -p "$(dirname "$fail_log")"
+        [ -f "$fail_log" ] || echo -e "sample\tstage\treason" > "$fail_log"
+        trap 'echo -e "{wildcards.sample}\tkraken2\tcommand_failed" >> "$fail_log"' ERR
+        mkdir -p "{KRAKEN_DIR}"
+
+        fq=$(realpath "{input.fq}")
+
+        kraken2 \
+          --db "{KRAKEN_DB}" \
+          --gzip-compressed \
+          --threads {threads} \
+          --report "{output.kreport}" \
+          --output "{output.out}" \
+          "$fq"
+
+        echo "DONE" > "{output.done}"
+        """
+
+
+rule kraken2_db_info:
+    output:
+        info=os.path.join(KRAKEN_DIR, "kraken2_db_info.txt")
+    shell:
+        r"""
+        set -euo pipefail
+        mkdir -p "{KRAKEN_DIR}"
+        printf "kraken_db_path\t%s\n" "{KRAKEN_DB}" > "{output.info}"
+        printf "kraken_db_name\t%s\n" "{KRAKEN_DB_NAME}" >> "{output.info}"
+        """
+
+
+rule kraken2_make_summary_table:
+    input:
+        kreports=expand(os.path.join(KRAKEN_DIR, "{sample}.kreport"), sample=SAMPLES),
+        db_info=os.path.join(KRAKEN_DIR, "kraken2_db_info.txt")
+    output:
+        table=os.path.join(KRAKEN_DIR, "kraken2_summary.csv")
+    run:
+        import csv
+
+        os.makedirs(KRAKEN_DIR, exist_ok=True)
+
+        def parse_kreport(path):
+            top_species = []
+            unclassified_pct = 0.0
+            try:
+                with open(path) as fh:
+                    for line in fh:
+                        parts = line.rstrip("\n").split("\t")
+                        if len(parts) < 6:
+                            continue
+                        try:
+                            pct = float(parts[0].strip())
+                        except Exception:
+                            continue
+                        rank = parts[3].strip()
+                        name = parts[5].strip()
+                        if rank == "U":
+                            unclassified_pct = pct
+                        elif rank == "S":
+                            top_species.append((pct, name))
+            except Exception:
+                return [], 0.0
+
+            top_species.sort(key=lambda x: x[0], reverse=True)
+            return top_species[:3], unclassified_pct
+
+        def fmt_species(item):
+            if not item:
+                return "NA"
+            pct, name = item
+            return f"{name} ({pct:.2f}%)"
+
+        rows = []
+        for sample in SAMPLES:
+            kreport = os.path.join(KRAKEN_DIR, f"{sample}.kreport")
+            top3, unclassified_pct = parse_kreport(kreport)
+            rows.append({
+                "Sample": sample,
+                "Top1": fmt_species(top3[0] if len(top3) > 0 else None),
+                "Top2": fmt_species(top3[1] if len(top3) > 1 else None),
+                "Top3": fmt_species(top3[2] if len(top3) > 2 else None),
+                "Unclassified": f"{unclassified_pct:.2f}%"
+            })
+
+        with open(output.table, "w", newline="") as out:
+            writer = csv.DictWriter(out, fieldnames=["Sample", "Top1", "Top2", "Top3", "Unclassified"])
+            writer.writeheader()
+            writer.writerows(rows)
+
 
 # ----------------
-# 7) Bakta
+# 8) Bakta
 # ----------------
 rule bakta_annotate:
     input:
@@ -660,29 +982,51 @@ rule bakta_annotate:
         echo "DONE" > "{output.done}"
         """
 
-        
-# ----------------
-# 9) Summary Excel (CheckM2 + Coverage)
-# ----------------
-SUMMARY_XLSX = os.path.join(OUTDIR, "checkm2_coverage_summary.xlsx")
 
+# ----------------
+# 9) Summary Excel (CheckM2 + Coverage + Kraken2 + QUAST)
+# ----------------
 def existing_summary_inputs(_wc=None):
     deps = []
     for sample in SAMPLES:
         for p in [
             os.path.join(CHECKM2_DIR, sample, "DONE.txt"),
             os.path.join(COV_DIR, sample, "DONE.txt"),
+            os.path.join(KRAKEN_DIR, f"{sample}.done.txt"),
             os.path.join(BAKTA_DIR, sample, "DONE.txt"),
             os.path.join(QUAST_DIR, sample, "report.txt"),
             os.path.join(MEDAKA_DIR, f"{sample}_final_assembly.fasta"),
+            os.path.join(AUTOCYCLER_DIR, sample, "autocycler_out", "dnaapler.done.txt"),
         ]:
             if os.path.exists(p):
                 deps.append(p)
+    for p in [
+        AUTOCYCLER_TABLE_TSV,
+        os.path.join(KRAKEN_DIR, "kraken2_db_info.txt"),
+        os.path.join(KRAKEN_DIR, "kraken2_summary.csv"),
+    ]:
+        if os.path.exists(p):
+            deps.append(p)
     return sorted(set(deps))
+
+
+_STRICT_SUMMARY_DEPS = (
+    expand(os.path.join(CHECKM2_DIR, "{sample}", "DONE.txt"), sample=SAMPLES) +
+    expand(os.path.join(COV_DIR, "{sample}", "DONE.txt"), sample=SAMPLES) +
+    expand(os.path.join(KRAKEN_DIR, "{sample}.done.txt"), sample=SAMPLES) +
+    [os.path.join(KRAKEN_DIR, "kraken2_summary.csv"),
+     os.path.join(KRAKEN_DIR, "kraken2_db_info.txt")] +
+    expand(os.path.join(BAKTA_DIR, "{sample}", "DONE.txt"), sample=SAMPLES) +
+    expand(os.path.join(QUAST_DIR, "{sample}", "report.txt"), sample=SAMPLES) +
+    expand(os.path.join(MEDAKA_DIR, "{sample}_final_assembly.fasta"), sample=SAMPLES) +
+    expand(os.path.join(AUTOCYCLER_DIR, "{sample}", "autocycler_out", "dnaapler.done.txt"), sample=SAMPLES) +
+    [AUTOCYCLER_TABLE_TSV]
+)
+
 
 rule make_checkm2_coverage_summary:
     input:
-        existing_summary_inputs
+        existing_summary_inputs if PIPELINE_MODE == "permissive" else _STRICT_SUMMARY_DEPS
     params:
         samples_json=lambda wc: json.dumps(SAMPLES)
     output:
@@ -708,6 +1052,8 @@ autocycler_dir = "{AUTOCYCLER_DIR}"
 medaka_dir = "{MEDAKA_DIR}"
 quast_dir = "{QUAST_DIR}"
 bakta_dir = "{BAKTA_DIR}"
+kraken_dir = "{KRAKEN_DIR}"
+autocycler_table_tsv = "{AUTOCYCLER_TABLE_TSV}"
 outdir_root = "{OUTDIR}"
 out_xlsx = "{output.xlsx}"
 samples = json.loads(r'''{params.samples_json}''')
@@ -756,7 +1102,86 @@ for f in cov_files:
 coverage_summary = pd.DataFrame(cov_rows)
 
 # -------------------------
-# 3) Per-sample run status
+# 3) QUAST summary
+# -------------------------
+import re as _re
+
+def _parse_quast_report(path):
+    stats = {{}}
+    with open(path) as fh:
+        for line in fh:
+            line = line.rstrip("\n")
+            if not line.strip() or line.startswith("All statistics"):
+                continue
+            parts = _re.split(r"\s{{2,}}|\t", line.strip())
+            if len(parts) >= 2:
+                stats[parts[0].strip()] = parts[-1].strip()
+    return stats
+
+_QUAST_KEYS = [
+    "# contigs",
+    "Largest contig",
+    "Total length",
+    "GC (%)",
+    "N50",
+    "N75",
+    "L50",
+    "L75",
+    "# N's per 100 kbp",
+]
+
+quast_rows = []
+for sample in samples:
+    report_path = os.path.join(quast_dir, sample, "report.txt")
+    row = {{"sample": sample}}
+    if os.path.exists(report_path):
+        try:
+            stats = _parse_quast_report(report_path)
+            for k in _QUAST_KEYS:
+                row[k] = stats.get(k, "NA")
+        except Exception as e:
+            row["parse_error"] = str(e)
+    quast_rows.append(row)
+
+quast_df = pd.DataFrame(quast_rows)
+
+# -------------------------
+# 4) Kraken2 summary
+# -------------------------
+kraken_summary_csv = os.path.join(kraken_dir, "kraken2_summary.csv")
+if os.path.exists(kraken_summary_csv):
+    try:
+        kraken_summary_df = pd.read_csv(kraken_summary_csv)
+    except Exception:
+        kraken_summary_df = pd.DataFrame([{{"Sample": "parse_error"}}])
+else:
+    kraken_summary_df = pd.DataFrame(columns=["Sample", "Top1", "Top2", "Top3", "Unclassified"])
+
+kraken_db_info = os.path.join(kraken_dir, "kraken2_db_info.txt")
+kraken_db_rows = []
+if os.path.exists(kraken_db_info):
+    with open(kraken_db_info) as fh:
+        for line in fh:
+            parts = line.rstrip("\n").split("\t", 1)
+            if len(parts) == 2:
+                kraken_db_rows.append({{"key": parts[0], "value": parts[1]}})
+kraken_db_df = pd.DataFrame(kraken_db_rows, columns=["key", "value"])
+
+# -------------------------
+# 5) Autocycler metrics table
+# -------------------------
+if os.path.exists(autocycler_table_tsv):
+    try:
+        autocycler_table_df = pd.read_csv(autocycler_table_tsv, sep="\t")
+        if autocycler_table_df.empty:
+            autocycler_table_df = pd.DataFrame(columns=["sample"])
+    except Exception:
+        autocycler_table_df = pd.DataFrame([{{"name": "parse_error", "source": autocycler_table_tsv}}])
+else:
+    autocycler_table_df = pd.DataFrame()
+
+# -------------------------
+# 6) Per-sample run status
 # -------------------------
 status_rows = []
 for sample in samples:
@@ -765,17 +1190,20 @@ for sample in samples:
         "qc_clean_fastq": os.path.exists(os.path.join(qc_dir, f"{{sample}}.clean.fastq.gz")),
         "autocycler_fasta": os.path.exists(os.path.join(autocycler_dir, sample, "autocycler_out", "consensus_assembly.fasta")),
         "autocycler_gfa": os.path.exists(os.path.join(autocycler_dir, sample, "autocycler_out", "consensus_assembly.gfa")),
+        "dnaapler_gfa": os.path.exists(os.path.join(autocycler_dir, sample, "autocycler_out", "consensus_assembly.reoriented.gfa")),
+        "dnaapler_fasta": os.path.exists(os.path.join(autocycler_dir, sample, "autocycler_out", "consensus_assembly.reoriented.fasta")),
         "medaka_final_fasta": os.path.exists(os.path.join(medaka_dir, f"{{sample}}_final_assembly.fasta")),
         "quast_report": os.path.exists(os.path.join(quast_dir, sample, "report.txt")),
         "checkm2_report": os.path.exists(os.path.join(checkm2_dir, sample, "quality_report.tsv")),
         "coverage_tsv": os.path.exists(os.path.join(cov_dir, sample, f"{{sample}}_contig_mean_depth.tsv")),
+        "kraken2_report": os.path.exists(os.path.join(kraken_dir, f"{{sample}}.kreport")),
         "bakta_done": os.path.exists(os.path.join(bakta_dir, sample, "DONE.txt")),
     }})
 
 status_df = pd.DataFrame(status_rows)
 
 # -------------------------
-# 4) Autocycler helper job summary
+# 7) Autocycler helper job summary
 # -------------------------
 job_rows = []
 for sample in samples:
@@ -822,7 +1250,7 @@ for sample in samples:
 autocycler_jobs_df = pd.DataFrame(job_rows)
 
 # -------------------------
-# 5) Bad FASTQ summary from prefilter
+# 8) Bad FASTQ summary from prefilter
 # -------------------------
 bad_fastq_tsv = os.path.join(Path(outdir_root).parent, "0_bad_fastqs", "moved_bad_fastqs.tsv")
 if os.path.exists(bad_fastq_tsv):
@@ -834,7 +1262,7 @@ else:
     bad_fastq_df = pd.DataFrame(columns=["file_name", "failure_reason"])
 
 # -------------------------
-# 6) Stage failure log
+# 9) Stage failure log
 # -------------------------
 fail_log_tsv = os.path.join(outdir_root, "0_failed_samples.tsv")
 if os.path.exists(fail_log_tsv):
@@ -846,7 +1274,7 @@ else:
     fail_log_df = pd.DataFrame(columns=["sample", "stage", "reason"])
 
 # -------------------------
-# 7) Write Excel
+# 10) Write Excel
 # -------------------------
 outdir = os.path.dirname(out_xlsx)
 if outdir:
@@ -855,6 +1283,10 @@ if outdir:
 with pd.ExcelWriter(out_xlsx) as writer:
     checkm2_all.to_excel(writer, sheet_name="CheckM2", index=False)
     coverage_summary.to_excel(writer, sheet_name="Coverage", index=False)
+    quast_df.to_excel(writer, sheet_name="QUAST", index=False)
+    kraken_summary_df.to_excel(writer, sheet_name="Kraken2", index=False)
+    kraken_db_df.to_excel(writer, sheet_name="Kraken2DB", index=False)
+    autocycler_table_df.to_excel(writer, sheet_name="AutocyclerTable", index=False)
     status_df.to_excel(writer, sheet_name="RunStatus", index=False)
     autocycler_jobs_df.to_excel(writer, sheet_name="AutocyclerJobs", index=False)
     bad_fastq_df.to_excel(writer, sheet_name="BadFASTQ", index=False)

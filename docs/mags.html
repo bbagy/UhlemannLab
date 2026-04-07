@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MAGs</title>
+  <link rel="stylesheet" href="styles.css?v=20260305-8">
+</head>
+<body class="theme-mags">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">UhlemannLab</div>
+      <nav class="nav">
+        <a href="./">Home</a>
+        <a href="workstations.html">Current Workstations</a>
+        <a href="longwgs.html">longWGS</a>
+        <a href="shortwgs.html">shortWGS</a>
+        <a href="kbracken.html">KBracken</a>
+        <a class="active" href="mags.html">MAGs</a>
+        <a href="pfsnake.html">PFsnake</a>
+        <a href="rnake.html">RNake</a>
+        <a href="tnseq_ont.html">TnSeq_ONT</a>
+      </nav>
+      <div class="sidebar-foot">
+        <a class="repo-link" href="https://github.com/bbagy/UhlemannLab" target="_blank" rel="noopener noreferrer">Open bbagy GitHub</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <span class="badge">Metagenomics</span>
+      <h1>MAGs</h1>
+      <p>Modular metagenome QC, assembly/binning, and annotation workflows.</p>
+      <div class="status-banner status-wip">
+        STATUS: IN TESTING
+      </div>
+
+      <h2>Workstation Layout</h2>
+      <div class="card"><pre><code>heekuk_path/
+|-- Go_MAGs_QC.sh
+|-- Go_MAGs_QC.smk
+|-- Go_MAGs_Assembly.sh
+|-- Go_MAGs_Assembly.smk
+|-- Go_MAGs_Annotation.sh
+|-- Go_MAGs_Annotation.smk
+|-- scripts/
+|   `-- summarize_all_results.py
+`-- docker/MAGs/
+    |-- Dockerfile.qc
+    |-- Dockerfile.assembly
+    `-- Dockerfile.annotation</code></pre></div>
+
+      <h2>Build</h2>
+      <div class="card"><pre><code>cd /home/uhlemann/heekuk_path/docker/MAGs
+docker build -f Dockerfile.qc -t mags-qc:1.0 .
+docker build -f Dockerfile.assembly -t mags-assembly:1.0 .
+docker build -f Dockerfile.annotation -t mags-annotation:1.0 .</code></pre></div>
+
+      <h2>Run QC</h2>
+      <div class="card"><pre><code>Go_MAGs_QC.sh \
+  -i /path/to/input_fastqs \
+  -o mags_qc_out \
+  -d /path/to/bowtie2_host_index/hg38 \
+  -c 8 \
+  -j 4 \
+  -K</code></pre></div>
+
+      <h2>Run Assembly</h2>
+      <div class="card"><pre><code>Go_MAGs_Assembly.sh \
+  -i mags_qc_out/host_filtered_fastq \
+  -o mags_assembly_out \
+  -d /path/to/checkm_data \
+  -c 24 \
+  -j 4 \
+  -K</code></pre></div>
+
+      <h2>Run Annotation</h2>
+      <div class="card"><pre><code>Go_MAGs_Annotation.sh \
+  -i mags_assembly_out/9_Final_MAGs \
+  -o mags_annotation_out \
+  -g /path/to/gtdbtk/release220 \
+  -e /path/to/eggnog \
+  -k /path/to/kofam_scan \
+  -c 24 \
+  -j 4 \
+  -K</code></pre></div>
+    </main>
+  </div>
+</body>
+</html>

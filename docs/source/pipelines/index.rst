@@ -6,7 +6,8 @@ Pipelines
 
    longwgs
    shortwgs
+   kbracken
+   mags
    pfsnake
    rnake
    tnseq_ont
-

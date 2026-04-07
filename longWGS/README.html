@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>longWGS README</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px 40px;
+      color: #1f2937;
+      background: #f8fafc;
+    }
+    h1, h2, h3 { color: #0f172a; }
+    pre, code {
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    }
+    pre {
+      background: #e2e8f0;
+      padding: 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    .note {
+      background: #dbeafe;
+      border-left: 4px solid #2563eb;
+      padding: 12px 14px;
+      border-radius: 6px;
+    }
+    ul { padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <h1>longWGS</h1>
+  <p>Bacterial ONT WGS workflow for assembly, polishing, QC, coverage, Kraken2 contamination screening, and annotation.</p>
+
+  <h2>Merge &amp; Rename</h2>
+  <p>
+    ONT sequencing output often contains many <code>barcodeXX/</code> directories, each with many
+    <code>.fastq.gz</code> files. The merge/rename step combines files barcode-by-barcode and then
+    renames them using a mapping table.
+  </p>
+
+  <h3>Supported Map Formats</h3>
+  <pre><code>old  new
+barcode01  KP0011
+barcode02  KP0063</code></pre>
+
+  <p>Headerless <code>old new</code> format is also supported, and legacy <code>sample barcode</code> files remain supported.</p>
+
+  <h3>Standard Merge</h3>
+  <pre><code>bash Go_merge_rename.sh -i fastq_pass -o merged_fastqs -m rename_map.tsv -n
+bash Go_merge_rename.sh -i fastq_pass -o merged_fastqs -m rename_map.tsv</code></pre>
+
+  <h3>Size-Limited Merge</h3>
+  <div class="note">
+    <strong>Go_merge_rename_V1_0.sh</strong> adds <code>--merge-until-size</code> so you can stop
+    merging once the cumulative compressed size reaches a practical threshold such as
+    <code>200M</code>, <code>500M</code>, or <code>1G</code>.
+  </div>
+
+  <ul>
+    <li>Files are merged whole-file at a time.</li>
+    <li>No <code>.fastq.gz</code> file is ever cut in the middle.</li>
+    <li>If the size threshold is not reached, all available files are merged for that barcode.</li>
+  </ul>
+
+  <pre><code>bash Go_merge_rename_V1_0.sh -i fastq_pass -o merged_fastqs -m rename_map.tsv -n --merge-until-size 200M
+bash Go_merge_rename_V1_0.sh -i fastq_pass -o merged_fastqs -m rename_map.tsv --merge-until-size 500M</code></pre>
+
+  <h2>Current Wrapper</h2>
+  <pre><code>./longWGS/Go_longWGS_V1_1.sh -h</code></pre>
+</body>
+</html>

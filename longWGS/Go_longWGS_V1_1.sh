@@ -329,7 +329,7 @@ stop_progress_monitor() {
   fi
 }
 
-SNAKEFILE_NAME="Go_longWGS_V6_1_docker.smk"
+SNAKEFILE_NAME="Go_longWGS.smk"  # fixed internal name; versioning is handled separately
 if [ ! -f "$PIPELINE_DIR/$SNAKEFILE_NAME" ]; then
   echo "[Go_longWGS][FATAL] Snakefile not found: $PIPELINE_DIR/$SNAKEFILE_NAME"
   exit 1

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KBracken</title>
+  <link rel="stylesheet" href="styles.css?v=20260305-8">
+</head>
+<body class="theme-kbracken">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">UhlemannLab</div>
+      <nav class="nav">
+        <a href="./">Home</a>
+        <a href="workstations.html">Current Workstations</a>
+        <a href="longwgs.html">longWGS</a>
+        <a href="shortwgs.html">shortWGS</a>
+        <a class="active" href="kbracken.html">KBracken</a>
+        <a href="mags.html">MAGs</a>
+        <a href="pfsnake.html">PFsnake</a>
+        <a href="rnake.html">RNake</a>
+        <a href="tnseq_ont.html">TnSeq_ONT</a>
+      </nav>
+      <div class="sidebar-foot">
+        <a class="repo-link" href="https://github.com/bbagy/UhlemannLab" target="_blank" rel="noopener noreferrer">Open bbagy GitHub</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <span class="badge">Kraken2 / Bracken</span>
+      <h1>KBracken</h1>
+      <p>Kraken2 + Bracken profiling with merged MPA-style outputs and master logs.</p>
+      <div class="status-banner status-wip">
+        STATUS: IN TESTING
+      </div>
+
+      <h2>Workstation Layout</h2>
+      <div class="card"><pre><code>heekuk_path/
+|-- Go_KBracken.sh
+|-- Go_KBracken.smk
+|-- scripts/
+|   |-- bracken_to_mpa.py
+|   |-- fill_bracken_taxonomy.py
+|   |-- kraken_masterlog.py
+|   `-- merge_mpa_tables.py
+`-- docker/KBracken/
+    `-- Dockerfile</code></pre></div>
+
+      <h2>Build</h2>
+      <div class="card"><pre><code>cd /home/uhlemann/heekuk_path/docker/KBracken
+docker build --network=host -t kbracken:1.0 .</code></pre></div>
+
+      <h2>Run</h2>
+      <div class="card"><pre><code>Go_KBracken.sh \
+  -i /path/to/fastq_dir \
+  -o KBracken_out \
+  -d /path/to/kraken2_db \
+  -c 8 \
+  -j 4 \
+  -K</code></pre></div>
+
+      <h2>Input Naming</h2>
+      <div class="card"><pre><code>ASB_1_R1.fastq.gz / ASB_1_R2.fastq.gz -> sample ASB_1
+ASB_2_R1.fastq.gz / ASB_2_R2.fastq.gz -> sample ASB_2
+S1_1.fastq.gz and S1_2.fastq.gz stay separate single-end samples</code></pre></div>
+      <p>Paired-end inference requires explicit <code>R1/R2</code> or <code>forward/reverse</code> tokens.</p>
+    </main>
+  </div>
+</body>
+</html>

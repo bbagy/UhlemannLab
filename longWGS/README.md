@@ -8,6 +8,15 @@ Bacterial ONT WGS workflow for assembly, polishing, QC, coverage, Kraken2 contam
 
 ## Version Notes
 
+- `Go_merge_rename_V1_0.sh`
+  - adds `--merge-until-size` for whole-file merge limiting such as `200M`, `500M`, or `1G`
+  - never cuts a `.fastq.gz` file mid-file
+  - if the size limit is not reached, merges all available files for that barcode
+
+- `V6_3`
+  - normalizes `autocycler_metrics.tsv` so the output always includes a header row
+  - carries the normalized Autocycler table into the summary Excel `AutocyclerTable` sheet
+
 - `V6_2`
   - adds `dnaapler` reorientation after Autocycler combine
   - converts reoriented GFA to FASTA with `autocycler gfa2fasta` before Medaka
@@ -28,7 +37,7 @@ Use `Go_longWGS_V1_1.sh` as the current wrapper.
 ./longWGS/Go_longWGS_V1_1.sh -h
 ```
 
-Latest Docker Snakefile: `Go_longWGS_V6_2_docker.smk`
+Current wrapper target Snakefile: `Go_longWGS_V6_2_docker.smk`
 
 ## Pipeline
 
@@ -103,7 +112,7 @@ docker run --rm longwgs bakta --help
 
 ONT sequencing output typically produces per-barcode directories (e.g. `fastq_pass/barcode01/`).
 Before running the pipeline, merge the per-read files into a single fastq.gz per sample and
-rename them from barcode names to sample names using `Go_merge_rename.sh`.
+rename them from barcode names to sample names using `Go_merge_rename.sh` or the size-limited `Go_merge_rename_V1_0.sh`.
 
 ```text
 fastq_pass/
@@ -152,6 +161,20 @@ bash Go_merge_rename.sh -i fastq_pass -o merged_fastqs -m samples_barcodes.txt -
 
 # apply
 bash Go_merge_rename.sh -i fastq_pass -o merged_fastqs -m samples_barcodes.txt
+```
+
+**Optional size-limited merge (`Go_merge_rename_V1_0.sh`):**
+
+This version merges whole `.fastq.gz` files until the cumulative compressed size
+reaches or exceeds a user-defined limit. Files are never cut mid-file.
+If a barcode does not have enough data to reach the limit, all available files are merged.
+
+```bash
+# dry-run with a 200M merge cap
+bash Go_merge_rename_V1_0.sh -i fastq_pass -o merged_fastqs -m rename_map.tsv -n --merge-until-size 200M
+
+# apply with a 500M merge cap
+bash Go_merge_rename_V1_0.sh -i fastq_pass -o merged_fastqs -m rename_map.tsv --merge-until-size 500M
 ```
 
 The `merged_fastqs/` directory is then used as input (`-i`) for the pipeline.
