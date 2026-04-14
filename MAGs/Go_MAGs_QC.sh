@@ -17,6 +17,21 @@ abs_path(){
   fi
 }
 
+abs_target_path(){
+  local p="$1"
+  local parent base
+  if [[ "$p" = /* ]]; then
+    parent="$(dirname "$p")"
+    base="$(basename "$p")"
+  else
+    parent="$(pwd -P)/$(dirname "$p")"
+    base="$(basename "$p")"
+  fi
+  [ -d "$parent" ] || { echo "[Go_MAGs_QC] OUTPUT_DIR parent not found: $parent" >&2; return 1; }
+  parent="$(cd "$parent" && pwd -P)"
+  printf '%s/%s\n' "$parent" "$base"
+}
+
 bt2_prefix_parent(){
   local p="$1"
   local d
@@ -67,6 +82,10 @@ done
 [ -z "$HOST_DB" ] && usage
 
 FASTQ_DIR_ABS="$(abs_path "$FASTQ_DIR")" || { echo "[Go_MAGs_QC] FASTQ_DIR not found: $FASTQ_DIR"; exit 1; }
+OUTPUT_DIR_ABS="$(abs_target_path "$OUTPUT_DIR")" || exit 1
+OUTPUT_PARENT="$(dirname "$OUTPUT_DIR_ABS")"
+OUTPUT_BASENAME="$(basename "$OUTPUT_DIR_ABS")"
+RUN_LOG="${OUTPUT_DIR_ABS}/logs/mags_qc.log"
 HOST_DB_PARENT="$(bt2_prefix_parent "$HOST_DB")" || { echo "[Go_MAGs_QC] HOST_DB parent not found: $HOST_DB"; exit 1; }
 HOST_DB_PREFIX="$(bt2_prefix_base "$HOST_DB")"
 HOST_DB_ABS="${HOST_DB_PARENT}/${HOST_DB_PREFIX}"
@@ -109,6 +128,7 @@ run(){
     -v "$PIPELINE_DIR":/pipeline:ro \
     -v "$FASTQ_DIR_ABS":/fastq:ro \
     -v "$HOST_DB_PARENT":/host_db:ro \
+    -v "$OUTPUT_PARENT":/out \
     -w /work \
     "$IMAGE" \
     "$@"
@@ -119,7 +139,7 @@ BASE_ARGS=(
   --snakefile "/pipeline/$SNAKEFILE_NAME"
   --config
   fastq_dir=/fastq
-  output_dir="$OUTPUT_DIR"
+  output_dir="/out/$OUTPUT_BASENAME"
   host_db="/host_db/$HOST_DB_PREFIX"
   paired=2
   threads="$CORES"
@@ -137,15 +157,16 @@ if [ "$KEEP_GOING" -eq 1 ]; then
 fi
 
 set +e
-run "${BASE_ARGS[@]}" 2>&1 | tee mags_qc.log
+mkdir -p "$(dirname "$RUN_LOG")"
+run "${BASE_ARGS[@]}" 2>&1 | tee "$RUN_LOG"
 rc=${PIPESTATUS[0]}
 set -e
 
-if [ "$rc" -ne 0 ] && grep -qiE "lock|unlock|LockException|cannot be locked" mags_qc.log; then
+if [ "$rc" -ne 0 ] && grep -qiE "lock|unlock|LockException|cannot be locked" "$RUN_LOG"; then
   echo "[Go_MAGs_QC] Detected lock issue -> running --unlock then retry..."
   run "${BASE_ARGS[@]}" --unlock
   set +e
-  run "${BASE_ARGS[@]}" 2>&1 | tee -a mags_qc.log
+  run "${BASE_ARGS[@]}" 2>&1 | tee -a "$RUN_LOG"
   rc=${PIPESTATUS[0]}
   set -e
 fi

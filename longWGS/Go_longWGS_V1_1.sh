@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
-usage(){ echo "Usage: $0 -i INPUT -o OUTPUT -d DB [-m MAP_FILE] [-s SNAKEDIR] [-p 0|1] [-n] [-K]"; exit 1; }
+usage(){ echo "Usage: $0 -i INPUT -o OUTPUT -d DB [-s SNAKEDIR] [-p 0|1] [-M strict|permissive] [-n] [-K]"; exit 1; }
 
 INPUT=""; OUTPUT=""; DB=""; SNAKEDIR=""; PORECHOP=0
 MAP_FILE=""
 DRYRUN=0
 KEEP_GOING=0
+PIPELINE_MODE="strict"
 PROGRESS_INTERVAL=60
 PROGRESS_PID=""
 DEFAULT_THREADS=2
@@ -17,19 +18,21 @@ MEDAKA_DATA_PATH="${MEDAKA_DATA_PATH:-/db/medaka_models}"
 is_nonneg_int() {
   [[ "${1:-}" =~ ^[0-9]+$ ]]
 }
-while getopts "i:o:d:s:p:nK" opt; do
+while getopts "i:o:d:s:p:M:nK" opt; do
   case $opt in
     i) INPUT="$OPTARG" ;;
     o) OUTPUT="$OPTARG" ;;
     d) DB="$OPTARG" ;;
     s) SNAKEDIR="$OPTARG" ;;
     p) PORECHOP="$OPTARG" ;;
+    M) PIPELINE_MODE="$OPTARG" ;;
     n) DRYRUN=1 ;;
     K) KEEP_GOING=1 ;;
     *) usage ;;
   esac
 done
 [ -z "$INPUT" ] && usage; [ -z "$OUTPUT" ] && usage; [ -z "$DB" ] && usage
+[ "$PIPELINE_MODE" = "strict" ] || [ "$PIPELINE_MODE" = "permissive" ] || usage
 
 file_size_bytes() {
   local f="$1"
@@ -339,6 +342,7 @@ mkdir -p "$DB/medaka_models"
 
 CMD="snakemake --snakefile /pipeline/$SNAKEFILE_NAME \
   --config Fastq_DIRS=\"$INPUT\" output=\"$OUTPUT\" database=\"/db\" \
+pipeline_mode=$PIPELINE_MODE \
 threads=$DEFAULT_THREADS jobs=$DEFAULT_AUTOCYCLER_JOBS do_porechop=$PORECHOP \
 qc_threads=$DEFAULT_THREADS medaka_threads=$DEFAULT_THREADS quast_threads=$DEFAULT_THREADS \
 checkm2_threads=$DEFAULT_THREADS cov_threads=$DEFAULT_THREADS bakta_threads=$DEFAULT_THREADS \

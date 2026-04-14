@@ -963,23 +963,34 @@ rule bakta_annotate:
         fail_log=$(realpath -m "{FAIL_LOG}")
         mkdir -p "$(dirname "$fail_log")"
         [ -f "$fail_log" ] || echo -e "sample\tstage\treason" > "$fail_log"
-        trap 'echo -e "{wildcards.sample}\tbakta\tcommand_failed" >> "$fail_log"' ERR
         sample="{wildcards.sample}"
         outdir="{BAKTA_DIR}/{wildcards.sample}"
+        done_file="{output.done}"
+        fail_marker="$outdir/FAILED.txt"
 
         mkdir -p "{BAKTA_DIR}"
 
         fasta=$(realpath "{input.fasta}")
 
-        bakta \
+        if bakta \
           --db "{BAKTA_DB}" \
           --output "$outdir" \
           --prefix "$sample" \
           --threads {threads} \
           --force \
-          "$fasta"
-
-        echo "DONE" > "{output.done}"
+          "$fasta"; then
+            echo "DONE" > "$done_file"
+            rm -f "$fail_marker"
+        else
+            echo -e "{wildcards.sample}\tbakta\tcommand_failed" >> "$fail_log"
+            if [ "{PIPELINE_MODE}" = "permissive" ]; then
+                mkdir -p "$outdir"
+                echo "command_failed" > "$fail_marker"
+                echo "FAILED" > "$done_file"
+            else
+                exit 1
+            fi
+        fi
         """
 
 
@@ -1185,6 +1196,14 @@ else:
 # -------------------------
 status_rows = []
 for sample in samples:
+    bakta_done_file = os.path.join(bakta_dir, sample, "DONE.txt")
+    bakta_failed_file = os.path.join(bakta_dir, sample, "FAILED.txt")
+    bakta_done = False
+    if os.path.exists(bakta_done_file):
+        try:
+            bakta_done = open(bakta_done_file).read().strip() == "DONE"
+        except Exception:
+            bakta_done = False
     status_rows.append({{
         "sample": sample,
         "qc_clean_fastq": os.path.exists(os.path.join(qc_dir, f"{{sample}}.clean.fastq.gz")),
@@ -1197,7 +1216,8 @@ for sample in samples:
         "checkm2_report": os.path.exists(os.path.join(checkm2_dir, sample, "quality_report.tsv")),
         "coverage_tsv": os.path.exists(os.path.join(cov_dir, sample, f"{{sample}}_contig_mean_depth.tsv")),
         "kraken2_report": os.path.exists(os.path.join(kraken_dir, f"{{sample}}.kreport")),
-        "bakta_done": os.path.exists(os.path.join(bakta_dir, sample, "DONE.txt")),
+        "bakta_done": bakta_done,
+        "bakta_failed": os.path.exists(bakta_failed_file),
     }})
 
 status_df = pd.DataFrame(status_rows)

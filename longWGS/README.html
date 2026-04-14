@@ -31,11 +31,37 @@
       border-radius: 6px;
     }
     ul { padding-left: 20px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 16px 0;
+      background: #ffffff;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #e2e8f0;
+    }
   </style>
 </head>
 <body>
   <h1>longWGS</h1>
   <p>Bacterial ONT WGS workflow for assembly, polishing, QC, coverage, Kraken2 contamination screening, and annotation.</p>
+
+  <h2>Version Notes</h2>
+  <ul>
+    <li><strong>V6_3</strong>: normalizes <code>autocycler_metrics.tsv</code>, carries the normalized table into the Excel summary, and in <code>pipeline_mode=permissive</code> logs Bakta failures without blocking summary workbook generation.</li>
+    <li><strong>V6_2</strong>: adds <code>dnaapler</code> reorientation, converts reoriented GFA to FASTA before Medaka, generates <code>autocycler_metrics.tsv</code>, and writes Autocycler metrics into the summary workbook.</li>
+    <li><strong>V6_1</strong>: baseline Docker Snakefile with Autocycler, Medaka, CheckM2, Kraken2, Bakta, and summary workbook output.</li>
+  </ul>
+
+  <h2>Current Wrapper</h2>
+  <pre><code>./longWGS/Go_longWGS_V1_1.sh -h</code></pre>
+  <p>Current wrapper target Snakefile: <code>Go_longWGS_V6_3_docker.smk</code></p>
 
   <h2>Merge &amp; Rename</h2>
   <p>
@@ -71,7 +97,84 @@ bash Go_merge_rename.sh -i fastq_pass -o merged_fastqs -m rename_map.tsv</code><
   <pre><code>bash Go_merge_rename_V1_0.sh -i fastq_pass -o merged_fastqs -m rename_map.tsv -n --merge-until-size 200M
 bash Go_merge_rename_V1_0.sh -i fastq_pass -o merged_fastqs -m rename_map.tsv --merge-until-size 500M</code></pre>
 
-  <h2>Current Wrapper</h2>
-  <pre><code>./longWGS/Go_longWGS_V1_1.sh -h</code></pre>
+  <h2>Quick Start</h2>
+  <pre><code>./longWGS/Go_longWGS_V1_1.sh \
+  -i /path/to/fastq \
+  -o /path/to/output \
+  -d /path/to/db \
+  -M strict \
+  -p 0 \
+  -K</code></pre>
+
+  <h2>Real Example</h2>
+  <pre><code>Go_longWGS.sh \
+  -i 1_merged_fastqs \
+  -o 2_longWGS_out \
+  -d /media/uhlemann/Core3_V2/DB/longWGS_DB \
+  -s /home/uhlemann/heekuk_path \
+  -M strict \
+  -p 0 \
+  -K</code></pre>
+
+  <h2>Options</h2>
+  <table>
+    <tr><th>Flag</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>-i</code></td><td>-</td><td>Input FASTQ directory</td></tr>
+    <tr><td><code>-o</code></td><td>-</td><td>Output directory</td></tr>
+    <tr><td><code>-d</code></td><td>-</td><td>DB root mounted to container as <code>/db</code></td></tr>
+    <tr><td><code>-s</code></td><td>script directory</td><td>Optional Snakefile directory override</td></tr>
+    <tr><td><code>-p</code></td><td><code>0</code></td><td><code>0</code>: skip porechop, <code>1</code>: run porechop</td></tr>
+    <tr><td><code>-M</code></td><td><code>strict</code></td><td>Pipeline mode: <code>strict</code> stops on stage failures, <code>permissive</code> records failures and still builds available summaries</td></tr>
+    <tr><td><code>-n</code></td><td>off</td><td>Dry-run</td></tr>
+    <tr><td><code>-K</code></td><td>off</td><td>Keep-going on independent failures</td></tr>
+  </table>
+
+  <h2>Common Runs</h2>
+  <pre><code># dry-run
+./longWGS/Go_longWGS_V1_1.sh -i IN -o OUT -d DB -n
+
+# production
+./longWGS/Go_longWGS_V1_1.sh -i IN -o OUT -d DB -M strict -K
+
+# enable porechop
+./longWGS/Go_longWGS_V1_1.sh -i IN -o OUT -d DB -p 1 -M strict -K
+
+# continue to summary workbook even if some Bakta jobs fail
+./longWGS/Go_longWGS_V1_1.sh -i IN -o OUT -d DB -M permissive -K</code></pre>
+
+  <h2>Output Layout</h2>
+  <pre><code>OUTDIR/
+  1_QC/
+  2_quast/
+  3_autocycler/
+  4_medaka/
+  5_checkm2/
+  6_coverage/
+  7a_kraken2/
+  7_bakta/
+  8_Bandage_image/          # created when Bandage step runs
+  0_failed_samples.tsv      # created by workflow on rule failures
+  checkm2_coverage_summary.xlsx</code></pre>
+
+  <h2>Permissive Mode</h2>
+  <div class="note">
+    Use <code>-M permissive</code> when you want the run to finish and still write
+    <code>checkm2_coverage_summary.xlsx</code> even if some Bakta jobs fail late in the pipeline.
+  </div>
+  <ul>
+    <li>Failed Bakta samples are recorded in <code>0_failed_samples.tsv</code>.</li>
+    <li><code>7_bakta/&lt;sample&gt;/FAILED.txt</code> marks samples where Bakta failed.</li>
+    <li>In the summary workbook, <code>RunStatus</code> uses <code>bakta_done</code> for true success and <code>bakta_failed</code> for skipped-after-failure samples.</li>
+  </ul>
+
+  <h2>Troubleshooting</h2>
+  <ul>
+    <li><code>docker: image not found longwgs</code>: build with <code>docker build -t longwgs longWGS</code></li>
+    <li><code>Kraken2 DB not found under DB root</code>: place a Kraken2 DB under <code>DB/kraken2DB/&lt;your_db&gt;</code> or related supported layouts</li>
+    <li>lock-related failure in log: wrapper already retries with <code>--unlock</code></li>
+    <li>repeated prefilter not running: expected when input files are older than <code>0_bad_fastqs/DONE.txt</code></li>
+    <li>no Bandage images: install <code>Bandage</code> on host or skip</li>
+    <li>Bakta failures block the final Excel: rerun with <code>-M permissive -K</code></li>
+  </ul>
 </body>
 </html>

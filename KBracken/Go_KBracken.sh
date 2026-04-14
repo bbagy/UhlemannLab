@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage(){
-  echo "Usage: $0 -i FASTQ_DIR -o OUTPUT_DIR -d KRAKEN2_DB [-s SNAKEDIR] [-c CORES] [-j JOBS] [-m IMAGE] [-n] [-K]"
+  echo "Usage: $0 -i FASTQ_DIR -o OUTPUT_DIR -d KRAKEN2_DB [-s SNAKEDIR] [-c CORES] [-j JOBS] [-m IMAGE] [-n] [-K] [--kraken-only]"
   exit 1
 }
 
@@ -26,19 +26,56 @@ JOBS=4
 IMAGE="kbracken:1.0"
 DRYRUN=0
 KEEP_GOING=0
+RUN_BRACKEN=1
 
-while getopts "i:o:d:s:c:j:m:nK" opt; do
-  case "$opt" in
-    i) FASTQ_DIR="$OPTARG" ;;
-    o) OUTPUT_DIR="$OPTARG" ;;
-    d) DB="$OPTARG" ;;
-    s) SNAKEDIR="$OPTARG" ;;
-    c) CORES="$OPTARG" ;;
-    j) JOBS="$OPTARG" ;;
-    m) IMAGE="$OPTARG" ;;
-    n) DRYRUN=1 ;;
-    K) KEEP_GOING=1 ;;
-    *) usage ;;
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -i)
+      FASTQ_DIR="${2:-}"
+      shift 2
+      ;;
+    -o)
+      OUTPUT_DIR="${2:-}"
+      shift 2
+      ;;
+    -d)
+      DB="${2:-}"
+      shift 2
+      ;;
+    -s)
+      SNAKEDIR="${2:-}"
+      shift 2
+      ;;
+    -c)
+      CORES="${2:-}"
+      shift 2
+      ;;
+    -j)
+      JOBS="${2:-}"
+      shift 2
+      ;;
+    -m)
+      IMAGE="${2:-}"
+      shift 2
+      ;;
+    -n)
+      DRYRUN=1
+      shift
+      ;;
+    -K)
+      KEEP_GOING=1
+      shift
+      ;;
+    --kraken-only)
+      RUN_BRACKEN=0
+      shift
+      ;;
+    --help|-h)
+      usage
+      ;;
+    *)
+      usage
+      ;;
   esac
 done
 
@@ -93,6 +130,7 @@ BASE_ARGS=(
   fastq_dir=/fastq
   output_dir="$OUTPUT_DIR"
   db=/db/kraken2
+  run_bracken="$RUN_BRACKEN"
   --cores "$CORES"
   --jobs "$JOBS"
   --latency-wait 60

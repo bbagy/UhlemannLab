@@ -1,6 +1,6 @@
 # KBracken
 
-Snakemake + Docker rewrite of `Gobracken2_V4.pl` for Kraken2 + Bracken profiling.
+Snakemake + Docker rewrite of `Gobracken2_V4.pl` for Kraken2 + optional Bracken profiling.
 
 ## Files
 
@@ -59,6 +59,13 @@ snakemake --snakefile /home/uhlemann/heekuk_path/Go_KBracken.smk \
   -c 8 \
   -j 4 \
   -K
+
+# Kraken2 only
+./Go_KBracken.sh \
+  -i /path/to/input_fastqs \
+  -o output \
+  -d /media/uhlemann/core4/DB/kraken2DB/k2_pluspfp_16gb_20241228 \
+  --kraken-only
 ```
 
 ## Input
@@ -109,6 +116,7 @@ output/
   fastq_dir=input_fastqs \
   output_dir=output \
   db=/path/to/kraken2_db \
+  run_bracken=true \
   kraken_threads=4 \
   bracken_read_len=100 \
   bracken_level=S \
@@ -118,6 +126,8 @@ output/
 ## Notes
 
 - This version intentionally keeps the `Gobracken2_V4.pl` output naming.
+- Set `run_bracken=false` to stop after Kraken2 and skip `6_bracken_out/`, `7_bracken_mpa/`, `bracken_mpa.txt`, and `bracken_mpa_filled.txt`.
+- In the Docker wrapper, `--kraken-only` means Kraken2-only mode.
 - This version does not depend on MetaPhlAn's `merge_metaphlan_tables.py`; it uses the bundled `scripts/merge_mpa_tables.py` for stable merge behavior.
 - Per-sample `.kraken2.done` markers are added inside `1_out/` so Snakemake can track side-effect FASTQ files safely.
 - `db="$DB"` is required in the direct Snakemake command. `db="DB"` would pass the literal string `DB`.

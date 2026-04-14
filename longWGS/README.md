@@ -16,6 +16,7 @@ Bacterial ONT WGS workflow for assembly, polishing, QC, coverage, Kraken2 contam
 - `V6_3`
   - normalizes `autocycler_metrics.tsv` so the output always includes a header row
   - carries the normalized Autocycler table into the summary Excel `AutocyclerTable` sheet
+  - in `pipeline_mode=permissive`, Bakta failures are logged and marked without blocking summary Excel generation
 
 - `V6_2`
   - adds `dnaapler` reorientation after Autocycler combine
@@ -37,7 +38,7 @@ Use `Go_longWGS_V1_1.sh` as the current wrapper.
 ./longWGS/Go_longWGS_V1_1.sh -h
 ```
 
-Current wrapper target Snakefile: `Go_longWGS_V6_2_docker.smk`
+Current wrapper target Snakefile: `Go_longWGS_V6_3_docker.smk`
 
 ## Pipeline
 
@@ -188,6 +189,7 @@ The same rename-table convention is also supported by `Go_rename_barcodes.sh` fo
   -i /path/to/fastq \
   -o /path/to/output \
   -d /path/to/db \
+  -M strict \
   -p 0 \
   -K
 ```
@@ -200,6 +202,7 @@ Go_longWGS.sh \
   -o 2_longWGS_out \
   -d /media/uhlemann/Core3_V2/DB/longWGS_DB \
   -s /home/uhlemann/heekuk_path \
+  -M strict \
   -p 0 \
   -K
 ```
@@ -213,6 +216,7 @@ Go_longWGS.sh \
 | `-d` | - | DB root mounted to container as `/db` |
 | `-s` | script directory | Optional Snakefile directory override |
 | `-p` | `0` | `0`: skip porechop, `1`: run porechop |
+| `-M` | `strict` | Pipeline mode: `strict` stops on stage failures, `permissive` records failures and still builds available summaries |
 | `-n` | off | Dry-run (`snakemake --dry-run`) |
 | `-K` | off | Keep going on independent failures (`--keep-going`) |
 
@@ -272,13 +276,19 @@ Dry-run:
 Production run (recommended):
 
 ```bash
-./longWGS/Go_longWGS_V1_1.sh -i IN -o OUT -d DB -K
+./longWGS/Go_longWGS_V1_1.sh -i IN -o OUT -d DB -M strict -K
 ```
 
 Enable porechop:
 
 ```bash
-./longWGS/Go_longWGS_V1_1.sh -i IN -o OUT -d DB -p 1 -K
+./longWGS/Go_longWGS_V1_1.sh -i IN -o OUT -d DB -p 1 -M strict -K
+```
+
+Finish the run and still write the summary workbook even if some Bakta jobs fail:
+
+```bash
+./longWGS/Go_longWGS_V1_1.sh -i IN -o OUT -d DB -M permissive -K
 ```
 
 ## Troubleshooting
@@ -293,6 +303,11 @@ Enable porechop:
   - expected when input files are older than `0_bad_fastqs/DONE.txt`
 - no Bandage images
   - install `Bandage` on host or skip (pipeline core output is unaffected)
+- Bakta failures block the final Excel
+  - rerun with `-M permissive -K` to log failed samples in `0_failed_samples.tsv` and continue to `checkm2_coverage_summary.xlsx`
+- How to read Bakta status in permissive mode
+  - `RunStatus` sheet: `bakta_done=True` means success, `bakta_failed=True` means the sample was skipped after failure
+  - `7_bakta/<sample>/FAILED.txt` marks samples where Bakta failed
 
 ## Maintainer
 

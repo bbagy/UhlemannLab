@@ -18,6 +18,8 @@ Core features
 - Snakemake run with lock auto-retry
 - Progress monitor
 - Optional Bandage image post-processing
+- Wrapper option ``-M strict|permissive`` for failure handling
+- In ``permissive`` mode, Bakta failures are logged but do not block summary workbook generation
 
 Build
 -----
@@ -32,5 +34,14 @@ Run
 
 .. code-block:: bash
 
-   ./longWGS/Go_longWGS_V1_1.sh -i IN -o OUT -d DB -K
+   ./longWGS/Go_longWGS_V1_1.sh -i IN -o OUT -d DB -M strict -K
 
+Permissive mode
+---------------
+
+Use ``-M permissive`` when you want the run to continue to the final Excel summary
+even if some Bakta jobs fail.
+
+.. code-block:: bash
+
+   ./longWGS/Go_longWGS_V1_1.sh -i IN -o OUT -d DB -M permissive -K

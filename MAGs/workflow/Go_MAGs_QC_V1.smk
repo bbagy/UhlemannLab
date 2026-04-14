@@ -189,7 +189,8 @@ rule bowtie2_host_filter:
     params:
         host_db=HOST_DB,
         tmp_r1=lambda wc: f"{INTERMEDIATE_DIR}/{wc.sample}.R1_nohuman.fastq",
-        tmp_r2=lambda wc: f"{INTERMEDIATE_DIR}/{wc.sample}.R2_nohuman.fastq"
+        tmp_r2=lambda wc: f"{INTERMEDIATE_DIR}/{wc.sample}.R2_nohuman.fastq",
+        sort_tmp=lambda wc: f"{INTERMEDIATE_DIR}/{wc.sample}.samtools_tmp"
     threads: THREADS
     shell:
         r"""
@@ -207,7 +208,7 @@ rule bowtie2_host_filter:
             2> {log:q} \
         | samtools view -@ {threads} -b -f 12 -F 256 - \
             2>> {log:q} \
-        | samtools sort -@ {threads} -n - \
+        | samtools sort -@ {threads} -n -T {params.sort_tmp:q} - \
             2>> {log:q} \
         | samtools fastq -@ {threads} \
             -1 {params.tmp_r1:q} \
@@ -219,7 +220,7 @@ rule bowtie2_host_filter:
 
         pigz -p {threads} -c {params.tmp_r1:q} > {output.r1:q}
         pigz -p {threads} -c {params.tmp_r2:q} > {output.r2:q}
-        rm -f {params.tmp_r1:q} {params.tmp_r2:q}
+        rm -f {params.tmp_r1:q} {params.tmp_r2:q} {params.sort_tmp:q}*.bam
         """
 
 

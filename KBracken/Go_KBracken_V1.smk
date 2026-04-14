@@ -26,6 +26,7 @@ KRAKEN_THREADS = int(config.get("kraken_threads", config.get("threads", 4)))
 BRACKEN_READ_LEN = int(config.get("bracken_read_len", 100))
 BRACKEN_LEVEL = config.get("bracken_level", "S")
 BRACKEN_THRESHOLD = int(config.get("bracken_threshold", 10))
+RUN_BRACKEN = str(config.get("run_bracken", "true")).lower() in ["1", "true", "yes", "y"]
 KEEP_LOGS = int(config.get("keep_logs", 1))
 
 OUT_RAW_DIR = f"{OUTPUT_DIR}/1_out"
@@ -118,17 +119,26 @@ def _fastqs(wildcards):
     return SAMPLE_FASTQS[wildcards.sample]
 
 
-rule all:
-    input:
-        f"{OUTPUT_DIR}/kraken2_mpa.txt",
+ALL_TARGETS = [
+    f"{OUTPUT_DIR}/kraken2_mpa.txt",
+    f"{OUTPUT_DIR}/kraken2_log.txt",
+    *expand(f"{OUT_RAW_DIR}/{{sample}}_out.txt", sample=SAMPLES),
+    *expand(f"{REPORT_DIR}/{{sample}}_report.txt", sample=SAMPLES),
+    *expand(f"{MPA_REPORT_DIR}/{{sample}}_mpa.txt", sample=SAMPLES),
+]
+
+if RUN_BRACKEN:
+    ALL_TARGETS.extend([
         f"{OUTPUT_DIR}/bracken_mpa.txt",
         f"{OUTPUT_DIR}/bracken_mpa_filled.txt",
-        f"{OUTPUT_DIR}/kraken2_log.txt",
-        expand(f"{OUT_RAW_DIR}/{{sample}}_out.txt", sample=SAMPLES),
-        expand(f"{REPORT_DIR}/{{sample}}_report.txt", sample=SAMPLES),
-        expand(f"{MPA_REPORT_DIR}/{{sample}}_mpa.txt", sample=SAMPLES),
-        expand(f"{BRACKEN_DIR}/{{sample}}_bracken.txt", sample=SAMPLES),
-        expand(f"{BRACKEN_MPA_DIR}/{{sample}}_bracken_mpa.txt", sample=SAMPLES)
+        *expand(f"{BRACKEN_DIR}/{{sample}}_bracken.txt", sample=SAMPLES),
+        *expand(f"{BRACKEN_MPA_DIR}/{{sample}}_bracken_mpa.txt", sample=SAMPLES),
+    ])
+
+
+rule all:
+    input:
+        ALL_TARGETS
 
 
 rule make_dirs:

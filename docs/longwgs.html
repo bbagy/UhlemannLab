@@ -45,6 +45,7 @@
         <span class="node">Medaka</span><span class="arrow">→</span>
         <span class="node">QUAST + CheckM2</span><span class="arrow">→</span>
         <span class="node">Coverage</span><span class="arrow">→</span>
+        <span class="node">Kraken2</span><span class="arrow">→</span>
         <span class="node">Bakta</span>
       </div>
 
@@ -73,7 +74,16 @@ bash Go_merge_rename.sh -i fastq_pass -o merged_fastqs -m samples_barcodes.txt</
   -i /path/to/fastq \
   -o /path/to/output \
   -d /path/to/db \
+  -M strict \
   -K</code></pre></div>
+
+      <h2>Failure Mode</h2>
+      <div class="card"><pre><code># default: stop on stage failures
+./longWGS/Go_longWGS_V1_1.sh -i IN -o OUT -d DB -M strict -K
+
+# continue to summary Excel even if some Bakta jobs fail
+./longWGS/Go_longWGS_V1_1.sh -i IN -o OUT -d DB -M permissive -K</code></pre></div>
+      <p>In <code>permissive</code> mode, failed Bakta samples are recorded in <code>0_failed_samples.tsv</code> and <code>7_bakta/&lt;sample&gt;/FAILED.txt</code>, while the final summary workbook is still generated from available outputs.</p>
 
       <h2>Real Example</h2>
       <div class="card"><pre><code>Go_longWGS.sh \
@@ -81,6 +91,7 @@ bash Go_merge_rename.sh -i fastq_pass -o merged_fastqs -m samples_barcodes.txt</
   -o longWGS/20261101_ONT_HKP_out \
   -d /media/uhlemann/core4/DB/longWGS_DB \
   -s /home/uhlemann/heekuk_path \
+  -M strict \
   -p 0 \
   -K</code></pre></div>
 
@@ -89,6 +100,7 @@ bash Go_merge_rename.sh -i fastq_pass -o merged_fastqs -m samples_barcodes.txt</
         <tr><th>Flag</th><th>Description</th></tr>
         <tr><td><code>-n</code></td><td>Dry-run</td></tr>
         <tr><td><code>-K</code></td><td>Keep-going</td></tr>
+        <tr><td><code>-M strict|permissive</code></td><td>Failure handling mode</td></tr>
         <tr><td><code>-p 0|1</code></td><td>Porechop off/on</td></tr>
         <tr><td><code>-s</code></td><td>Custom snakefile directory</td></tr>
       </table>
@@ -124,7 +136,10 @@ longWGS_DB/
     |-- 4_medaka/
     |-- 5_checkm2/
     |-- 6_coverage/
+    |-- 7a_kraken2/
     |-- 7_bakta/
+    |-- 0_failed_samples.tsv
+    |-- checkm2_coverage_summary.xlsx
     `-- 8_Bandage_image/ (optional)</code></pre></div>
     </main>
   </div>
