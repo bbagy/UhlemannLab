@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>RNake</title>
-  <link rel="stylesheet" href="styles.css?v=20260305-8">
+  <link rel="stylesheet" href="styles.css?v=20260305-9">
 </head>
 <body class="theme-rna">
   <div class="layout">
@@ -16,6 +16,7 @@
         <a href="longwgs.html">longWGS</a>
         <a href="shortwgs.html">shortWGS</a>
         <a href="kbracken.html">KBracken</a>
+        <a href="humann.html">Humann</a>
         <a href="mags.html">MAGs</a>
         <a href="pfsnake.html">PFsnake</a>
         <a class="active" href="rnake.html">RNake</a>
@@ -30,8 +31,8 @@
       <span class="badge">RNA-seq</span>
       <h1>RNake</h1>
       <p>Bacterial RNA-seq trimming, mapping and count-table generation workflow.</p>
-      <div class="status-banner status-wip">
-        STATUS: TEST IN PROGRESS
+      <div class="status-banner status-tested">
+        STATUS: AVAILABLE — TESTED IN CORE3 WORKSTATION
       </div>
 
       <h2>Pipeline Flow</h2>
@@ -45,22 +46,24 @@
 
       <h2>Build</h2>
       <div class="card"><pre><code>cd RNake
-docker build -t rnake:latest .</code></pre></div>
+docker build -t rnake:1.0 .</code></pre></div>
 
       <h2>Run</h2>
-      <div class="card"><pre><code>./RNake/Go_Rnake.sh \
+      <div class="card"><pre><code>./RNake/Go_RNake.sh \
   -i /path/to/reads \
   -o project_name \
   -g /path/to/genome.fna \
   -a /path/to/annotation.gff \
+  -c 8 \
   -K</code></pre></div>
 
       <h2>Real Example</h2>
-      <div class="card"><pre><code>Go_Rnake.sh \
+      <div class="card"><pre><code>Go_RNake.sh \
   -i RNake/20261101_RNA_HKP \
   -o RNake/20261101_RNA_HKP_out \
   -g /media/uhlemann/Core3_V2/REF/ecoli.fna \
   -a /media/uhlemann/Core3_V2/REF/ecoli.gff \
+  -s /home/uhlemann/heekuk_path \
   -K</code></pre></div>
 
       <h2>Options</h2>

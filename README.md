@@ -11,12 +11,18 @@ Each pipeline is self-contained with its own `Dockerfile`, workflow, wrapper scr
 
 ## Pipeline Catalog
 
+Available now (production-ready):
+
 - `longWGS`: ONT assembly/polishing/QC/annotation
 - `shortWGS`: Illumina typing (MLST/ARG/Plasmid/TETyper)
 - `KBracken`: Kraken2 + Bracken profiling and merged MPA-style tables
+- `Humann`: HUMAnN3 + MetaPhlAn4 functional profiling with KEGG orthology output
+- `RNake`: bacterial RNA-seq trimming/mapping/count workflow
+
+In testing:
+
 - `MAGs`: modular metagenome QC, MAG assembly/binning, and annotation
 - `PFsnake`: *P. falciparum* variant/CNV/drug summary
-- `RNake`: bacterial RNA-seq count workflow
 - `TnSeq_ONT`: ONT flank extraction and clustering
 
 ---
@@ -37,7 +43,7 @@ Each pipeline is self-contained with its own `Dockerfile`, workflow, wrapper scr
 - Workstation updates are sent with `myscripts/Go_shotgun/Go_toWorkstation.sh`.
 - Remote workstation wrappers and Snakefiles are stored under `heekuk_path` with version-free names, while Dockerfiles are stored under `heekuk_path/docker/<pipeline>/`.
 - Common wrapper flags:
-  - `-n`: dry-run (show execution plan only)
+  - `-n` (or `-x` for `Go_Humann.sh`): dry-run (show execution plan only)
   - `-K`: keep-going (continue independent jobs even if some fail)
 
 ---
@@ -48,6 +54,8 @@ Each pipeline is self-contained with its own `Dockerfile`, workflow, wrapper scr
 Go_toWorkstation.sh longWGS
 Go_toWorkstation.sh shortWGS
 Go_toWorkstation.sh KBracken
+Go_toWorkstation.sh Humann
+Go_toWorkstation.sh RNake
 Go_toWorkstation.sh MAGs
 Go_toWorkstation.sh all
 ```
@@ -58,6 +66,8 @@ The helper sends the latest local versioned workflow files, but stores them on e
 heekuk_path/Go_longWGS.smk
 heekuk_path/Go_shortWGS.smk
 heekuk_path/Go_KBracken.smk
+heekuk_path/Go_Humann.smk
+heekuk_path/Go_RNake.smk
 heekuk_path/Go_MAGs_QC.smk
 heekuk_path/Go_MAGs_Assembly.smk
 heekuk_path/Go_MAGs_Annotation.smk

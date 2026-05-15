@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Humann</title>
+  <link rel="stylesheet" href="styles.css?v=20260305-9">
+</head>
+<body class="theme-humann">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">UhlemannLab</div>
+      <nav class="nav">
+        <a href="./">Home</a>
+        <a href="workstations.html">Current Workstations</a>
+        <a href="longwgs.html">longWGS</a>
+        <a href="shortwgs.html">shortWGS</a>
+        <a href="kbracken.html">KBracken</a>
+        <a class="active" href="humann.html">Humann</a>
+        <a href="mags.html">MAGs</a>
+        <a href="pfsnake.html">PFsnake</a>
+        <a href="rnake.html">RNake</a>
+        <a href="tnseq_ont.html">TnSeq_ONT</a>
+      </nav>
+      <div class="sidebar-foot">
+        <a class="repo-link" href="https://github.com/bbagy/UhlemannLab" target="_blank" rel="noopener noreferrer">Open bbagy GitHub</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <span class="badge">HUMAnN3 / MetaPhlAn4</span>
+      <h1>Humann</h1>
+      <p>Shotgun metagenome functional profiling with HUMAnN3 + MetaPhlAn4, including merged gene-family / pathway tables, optional MUSiCC correction, and KEGG orthology regrouping.</p>
+      <div class="status-banner status-tested">
+        STATUS: AVAILABLE — TESTED IN CORE4 WORKSTATION
+      </div>
+
+      <h2>Pipeline Flow</h2>
+      <div class="flow">
+        <span class="node">Prefilter + R1/R2 merge</span><span class="arrow">→</span>
+        <span class="node">HUMAnN3 per-sample</span><span class="arrow">→</span>
+        <span class="node">MetaPhlAn4 bug list</span><span class="arrow">→</span>
+        <span class="node">join_tables</span><span class="arrow">→</span>
+        <span class="node">renorm CPM</span><span class="arrow">→</span>
+        <span class="node">regroup UniRef90_rxn</span><span class="arrow">→</span>
+        <span class="node">MUSiCC (opt)</span><span class="arrow">→</span>
+        <span class="node">rename KEGG-orthology</span><span class="arrow">→</span>
+        <span class="node">stratified split</span>
+      </div>
+
+      <h2>Build</h2>
+      <div class="card"><pre><code>cd Humann
+docker build --network=host -t humann:1.0 .</code></pre></div>
+
+      <h2>Run</h2>
+      <div class="card"><pre><code>./Humann/Go_Humann.sh \
+  -i /path/to/host_filtered_fastq \
+  -o humann_run \
+  -n /path/to/chocophlan \
+  -p /path/to/uniref \
+  -b /path/to/metaphlan_db \
+  -I mpa_vJan25_CHOCOPhlAnSGB_202503 \
+  -c 8 -j 4 -t 4 \
+  --run-musicc \
+  -K</code></pre></div>
+
+      <h2>Real Example</h2>
+      <div class="card"><pre><code>Go_Humann.sh \
+  -i Humann/20261101_MG_HKP_nohuman \
+  -o Humann/20261101_MG_HKP_humann_out \
+  -n /media/uhlemann/core4/DB/humann_db/humann3/chocophlan \
+  -p /media/uhlemann/core4/DB/humann_db/humann3/uniref \
+  -b /media/uhlemann/core4/DB/humann_db/metaphlan4 \
+  -I mpa_vJan25_CHOCOPhlAnSGB_202503 \
+  -s /home/uhlemann/heekuk_path \
+  -c 8 -j 4 -t 4 \
+  --run-musicc \
+  -K</code></pre></div>
+
+      <h2>Options</h2>
+      <table>
+        <tr><th>Flag</th><th>Description</th></tr>
+        <tr><td><code>-i</code></td><td>Input host-filtered FASTQ directory</td></tr>
+        <tr><td><code>-o</code></td><td>Output directory</td></tr>
+        <tr><td><code>-n</code></td><td>HUMAnN3 nucleotide DB (<code>chocophlan</code>)</td></tr>
+        <tr><td><code>-p</code></td><td>HUMAnN3 protein DB (<code>uniref</code>)</td></tr>
+        <tr><td><code>-b</code></td><td>MetaPhlAn4 DB directory (or legacy <code>.pkl</code>)</td></tr>
+        <tr><td><code>-I</code></td><td>MetaPhlAn4 index basename</td></tr>
+        <tr><td><code>-c / -j / -t</code></td><td>Snakemake cores / jobs / HUMAnN threads</td></tr>
+        <tr><td><code>-x</code></td><td>Dry-run</td></tr>
+        <tr><td><code>-K</code></td><td>Keep-going</td></tr>
+        <tr><td><code>--run-musicc</code></td><td>Enable MUSiCC correction</td></tr>
+        <tr><td><code>--skip-gene-norm</code></td><td>Skip gene-family normalization</td></tr>
+        <tr><td><code>--skip-path-split</code></td><td>Skip stratified/unstratified split</td></tr>
+      </table>
+
+      <h2>Expected Input</h2>
+      <div class="card"><pre><code>Humann/
+|-- 20251101_MG_HKP_nohuman/
+|   |-- SAMPLE1_R1_nohuman.fastq.gz
+|   `-- SAMPLE1_R2_nohuman.fastq.gz
+`-- 20251101_MG_HKP_humann_out/
+
+humann_db/
+|-- humann3/
+|   |-- chocophlan/
+|   `-- uniref/
+`-- metaphlan4/
+    `-- mpa_vJan25_CHOCOPhlAnSGB_202503.*</code></pre></div>
+
+      <h2>Main Outputs</h2>
+      <div class="card"><pre><code>OUT/
+|-- 1_humann3_out/
+|   |-- &lt;sample&gt;_genefamilies.tsv
+|   |-- &lt;sample&gt;_pathabundance.tsv
+|   `-- &lt;sample&gt;_pathcoverage.tsv
+|-- 2_humann3_final_out/
+|   |-- merged_genefamilies.txt
+|   |-- merged_pathabundance.txt
+|   `-- merged_pathcoverage.txt
+|-- 3_MetaPhlAn_bug_list/
+|   `-- &lt;sample&gt;_metaphlan_bugs_list.tsv
+|-- 4_kegg-orthology/
+|   |-- merged_genefamilies_cpm.txt
+|   |-- merged_genefamilies_uniref90_rxn_cpm.txt
+|   |-- merged_genefamilies_uniref90_rxn_musicc.txt
+|   `-- merged_genefamilies_uniref90_rxn_kegg-orthology_cpm.txt
+|-- 5_pathabundance_stratified_out/
+|   `-- merged_pathabundance_unstratified.txt
+|-- 6_logs/
+`-- humann3_log.txt</code></pre></div>
+
+      <h2>Notes</h2>
+      <ul>
+        <li>Recommended MetaPhlAn input: <code>-b &lt;dir&gt;</code> + <code>-I &lt;index_basename&gt;</code>; <code>.pkl</code> shortcut auto-resolves for legacy use.</li>
+        <li>Paired <code>_R1 / _R2</code> (including <code>_nohuman</code> variants) are merged per sample into <code>7_intermediate/&lt;sample&gt;.merged.fastq.gz</code> before HUMAnN runs.</li>
+        <li>Per-sample <code>.humann.done</code> markers allow safe resume after interruption.</li>
+        <li><code>--run-musicc</code> enables MUSiCC correction on the regrouped KO table.</li>
+      </ul>
+    </main>
+  </div>
+</body>
+</html>

@@ -26,6 +26,7 @@ PROTEIN_DB = config.get("protein_db", "/media/uhlemann/core4/DB/humann_db/humann
 METAPHLAN_DB = config.get("metaphlan_db", "")
 METAPHLAN_INDEX = config.get("metaphlan_index", "")
 THREADS_PER_SAMPLE = int(config.get("humann_threads", config.get("threads", 4)))
+MEMORY_USE = config.get("memory_use", "minimum")
 KEEP_LOGS = int(config.get("keep_logs", 1))
 RUN_GENE_NORM = str(config.get("run_gene_norm", "true")).lower() in ["1", "true", "yes", "y"]
 RUN_PATH_SPLIT = str(config.get("run_path_split", "true")).lower() in ["1", "true", "yes", "y"]
@@ -230,7 +231,8 @@ rule run_humann:
         nucleotide_db=NUCLEOTIDE_DB,
         protein_db=PROTEIN_DB,
         metaphlan_db=METAPHLAN_DB,
-        metaphlan_index=METAPHLAN_INDEX
+        metaphlan_index=METAPHLAN_INDEX,
+        memory_use=MEMORY_USE
     threads: THREADS_PER_SAMPLE
     shell:
         r"""
@@ -251,6 +253,7 @@ rule run_humann:
 
         humann_args=(
             --threads {threads}
+            --memory-use {params.memory_use}
             --input {input.fastq:q}
             --output {params.outdir:q}
             --nucleotide-database {params.nucleotide_db:q}

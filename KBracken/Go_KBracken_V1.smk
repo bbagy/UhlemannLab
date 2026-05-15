@@ -119,6 +119,36 @@ def _fastqs(wildcards):
     return SAMPLE_FASTQS[wildcards.sample]
 
 
+def _validate_db():
+    db_path = Path(DB)
+    if not db_path.exists():
+        raise ValueError(f"[KBracken] DB path not found: {DB}")
+
+    required_kraken2 = ["hash.k2d", "opts.k2d", "taxo.k2d"]
+    missing_kraken2 = [name for name in required_kraken2 if not (db_path / name).exists()]
+    if missing_kraken2:
+        raise ValueError(
+            "[KBracken] Kraken2 DB looks incomplete: "
+            f"{DB} is missing {', '.join(missing_kraken2)}"
+        )
+
+    if RUN_BRACKEN:
+        bracken_kmer = db_path / f"database{BRACKEN_READ_LEN}mers.kmer_distrib"
+        if not bracken_kmer.exists():
+            candidates = sorted(p.name for p in db_path.glob("database*mers.kmer_distrib"))
+            candidate_msg = f" Available files: {', '.join(candidates)}" if candidates else ""
+            raise ValueError(
+                "[KBracken] Bracken DB file missing: "
+                f"{bracken_kmer}. Build Bracken files for read length {BRACKEN_READ_LEN} "
+                "with bracken-build, use a DB that already contains them, or set "
+                "run_bracken=false / --kraken-only to skip Bracken."
+                + candidate_msg
+            )
+
+
+_validate_db()
+
+
 ALL_TARGETS = [
     f"{OUTPUT_DIR}/kraken2_mpa.txt",
     f"{OUTPUT_DIR}/kraken2_log.txt",
@@ -231,14 +261,21 @@ rule bracken:
     shell:
         r"""
         set -euo pipefail
-        bracken \
-            -d {params.db:q} \
-            -i {input.report:q} \
-            -o {output.bracken:q} \
-            -r {params.read_len} \
-            -l {params.level:q} \
-            -t {params.threshold} \
-            > {log:q} 2>&1
+        # Bracken can fail on near-empty/negative-control reports with no species rows
+        # that survive the configured abundance threshold.
+        if awk -F '\t' -v min_reads={params.threshold} 'NF >= 6 && $4 == "S" && ($2 + 0 >= min_reads || $3 + 0 >= min_reads) {{found=1; exit 0}} END {{exit found ? 0 : 1}}' {input.report:q}; then
+            bracken \
+                -d {params.db:q} \
+                -i {input.report:q} \
+                -o {output.bracken:q} \
+                -r {params.read_len} \
+                -l {params.level:q} \
+                -t {params.threshold} \
+                > {log:q} 2>&1
+        else
+            printf "[KBracken] No species-level rows meeting bracken_threshold=%s in %s; writing empty Bracken output.\n" {params.threshold} {input.report:q} > {log:q}
+            : > {output.bracken:q}
+        fi
         """
 
 

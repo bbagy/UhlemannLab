@@ -1,19 +1,23 @@
-FROM mambaorg/micromamba:latest
+FROM mambaorg/micromamba:1.5.10
 
-ARG MAMBA_DOCKERFILE_ACTIVATE=1
+LABEL author="Heekuk Park"
+LABEL project="RNake"
 
-RUN micromamba install -y -n base -c conda-forge -c bioconda -c defaults \
-    python=3.11 \
-    snakemake \
-    pandas \
-    trimmomatic \
-    bowtie2 \
-    samtools \
-    htseq \
-    && micromamba clean --all --yes
+ENV ENV_NAME=rnake
+
+RUN micromamba create -y -n ${ENV_NAME} \
+    -c conda-forge -c bioconda \
+    python=3.11 \                        
+    snakemake \                          
+    pandas \                             
+    trimmomatic \                        
+    bowtie2 \                            
+    samtools \                           
+    htseq \                              
+    && micromamba clean --all --yes   
+
+ENV PATH=/opt/conda/envs/${ENV_NAME}/bin:$PATH
+ENV CONDA_DEFAULT_ENV=${ENV_NAME}
 
 WORKDIR /work
-COPY --chown=$MAMBA_USER:$MAMBA_USER Go_bacteriaRNake_paired_V4.smk /opt/rnake/Go_bacteriaRNake_paired_V4.smk
-
-ENTRYPOINT ["snakemake", "-s", "/opt/rnake/Go_bacteriaRNake_paired_V4.smk"]
-CMD ["--help"]
+CMD ["bash"]

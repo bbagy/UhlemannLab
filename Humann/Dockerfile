@@ -11,7 +11,9 @@ RUN micromamba create -y -n ${ENV_NAME} \
     snakemake=8.25.3 \
     humann=3.9 \
     metaphlan=4.1.0 \
-    bowtie2 \
+    'bowtie2>=2.5,<2.6' \
+    libstdcxx-ng \
+    libgcc-ng \
     diamond \
     biom-format \
     pandas \
@@ -20,10 +22,18 @@ RUN micromamba create -y -n ${ENV_NAME} \
     pigz \
     coreutils \
     pip \
+    && BOWTIE_PKG_BIN="$(dirname "$(find /opt/conda/pkgs -path '*/bowtie2-*/bin/bowtie2-build' | sort | tail -n 1)")" \
+    && for exe in bowtie2 bowtie2-build bowtie2-align-s bowtie2-align-l bowtie2-build-s bowtie2-build-l bowtie2-inspect bowtie2-inspect-s bowtie2-inspect-l; do \
+         if [ -x "$BOWTIE_PKG_BIN/$exe" ]; then \
+           ln -sf "$BOWTIE_PKG_BIN/$exe" "/opt/conda/envs/${ENV_NAME}/bin/$exe"; \
+         fi; \
+       done \
     && micromamba run -n ${ENV_NAME} pip install --no-cache-dir MUSiCC==1.0.4 \
     && micromamba run -n ${ENV_NAME} python -c "import humann; print(humann.__file__)" \
     && micromamba run -n ${ENV_NAME} humann --version \
     && micromamba run -n ${ENV_NAME} python -c "import metaphlan; print(metaphlan.__file__)" \
+    && ls -l "/opt/conda/envs/${ENV_NAME}/bin/bowtie2-build" \
+    && LD_LIBRARY_PATH="/opt/conda/envs/${ENV_NAME}/lib:$LD_LIBRARY_PATH" PATH="/opt/conda/envs/${ENV_NAME}/bin:$PATH" /opt/conda/envs/${ENV_NAME}/bin/bowtie2-build --version | head -n 1 \
     && micromamba clean --all --yes
 
 # MetaPhlAn 4.x exits non-zero for --version in some environments,
@@ -39,6 +49,7 @@ RUN REAL=/opt/conda/envs/${ENV_NAME}/bin/metaphlan.real && \
 
 ENV MAMBA_DEFAULT_ENV=${ENV_NAME}
 ENV PATH=/opt/conda/envs/${ENV_NAME}/bin:$PATH
+ENV LD_LIBRARY_PATH=/opt/conda/envs/${ENV_NAME}/lib:$LD_LIBRARY_PATH
 
 WORKDIR /work
 CMD ["bash"]

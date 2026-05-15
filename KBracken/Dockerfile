@@ -6,7 +6,7 @@ LABEL project="KBracken"
 ENV ENV_NAME=kbracken
 
 RUN micromamba create -y -n ${ENV_NAME} \
-    -c conda-forge -c bioconda \
+    -c conda-forge -c bioconda  -c  defaults \
     python=3.11 \
     snakemake=8.25.3 \
     kraken2=2.1.3 \

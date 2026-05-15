@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>UhlemannLab Documentation</title>
-  <link rel="stylesheet" href="styles.css?v=20260305-8">
+  <link rel="stylesheet" href="styles.css?v=20260305-9">
 </head>
 <body>
   <div class="layout">
@@ -16,6 +16,7 @@
         <a href="longwgs.html">longWGS</a>
         <a href="shortwgs.html">shortWGS</a>
         <a href="kbracken.html">KBracken</a>
+        <a href="humann.html">Humann</a>
         <a href="mags.html">MAGs</a>
         <a href="pfsnake.html">PFsnake</a>
         <a href="rnake.html">RNake</a>
@@ -53,10 +54,23 @@
           <p>Illumina typing with MLST/ARG/Plasmid/TETyper and report outputs.</p>
           <div class="shortwgs-visual" aria-hidden="true"></div>
         </a>
-        <a class="pipeline-card card-link" href="kbracken.html" aria-label="Open KBracken page">
-          <span class="card-badge">In testing</span>
+        <a class="pipeline-card featured kbracken-featured card-link" href="kbracken.html" aria-label="Open KBracken page">
+          <span class="card-badge live">Available now</span>
           <h3>KBracken</h3>
           <p>Kraken2 + Bracken profiling with merged MPA-style outputs.</p>
+          <div class="kbracken-visual" aria-hidden="true"></div>
+        </a>
+        <a class="pipeline-card featured humann-featured card-link" href="humann.html" aria-label="Open Humann page">
+          <span class="card-badge live">Available now</span>
+          <h3>Humann</h3>
+          <p>HUMAnN3 + MetaPhlAn4 functional profiling with KEGG orthology output.</p>
+          <div class="humann-visual" aria-hidden="true"></div>
+        </a>
+        <a class="pipeline-card featured rnake-featured card-link" href="rnake.html" aria-label="Open RNake page">
+          <span class="card-badge live">Available now</span>
+          <h3>RNake</h3>
+          <p>Bacterial RNA-seq trimming, mapping, and merged count-table generation.</p>
+          <div class="rnake-visual" aria-hidden="true"></div>
         </a>
         <a class="pipeline-card card-link" href="mags.html" aria-label="Open MAGs page">
           <span class="card-badge">In testing</span>
@@ -67,11 +81,6 @@
           <span class="card-badge">In testing</span>
           <h3>PFsnake</h3>
           <p><em>P. falciparum</em> variant/CNV/drug summary pipeline.</p>
-        </section>
-        <section class="pipeline-card">
-          <span class="card-badge">In testing</span>
-          <h3>RNake</h3>
-          <p>Bacterial RNA-seq processing and count-table generation.</p>
         </section>
         <section class="pipeline-card">
           <span class="card-badge">In testing</span>

@@ -419,8 +419,17 @@ if [ "$DRYRUN" -eq 0 ]; then
       mkdir -p "$BANDAGE_DIR"
       for gfa in "${gfas[@]}"; do
         sample=$(basename "$(dirname "$(dirname "$gfa")")")
+        failed_marker="$(dirname "$gfa")/FAILED.txt"
         gfa_copy="$BANDAGE_DIR/${sample}.consensus_assembly.gfa"
         png="$BANDAGE_DIR/${sample}.consensus_assembly.png"
+        if [ -f "$failed_marker" ]; then
+          echo "  Bandage: skip failed sample $sample"
+          continue
+        fi
+        if [ ! -s "$gfa" ]; then
+          echo "  Bandage: skip empty GFA for $sample"
+          continue
+        fi
         if [ ! -s "$gfa_copy" ] || [ "$gfa" -nt "$gfa_copy" ]; then
           cp -f "$gfa" "$gfa_copy"
           echo "  Bandage: copied GFA -> $gfa_copy"

@@ -82,7 +82,7 @@ prefilter_rnaseq_fastqs(){
 
 READ_DIR=""; PROJECT=""; GENOME=""; GFF=""; SNAKEDIR=""
 CORES=8
-IMAGE="rnake:latest"
+IMAGE="rnake:1.0"
 DRYRUN=0
 KEEP_GOING=0
 SHOW_PROGRESS=1
@@ -119,9 +119,12 @@ prefilter_rnaseq_fastqs "$READ_DIR_ABS"
 total_samples(){
   local d="$1"
   local n
+  # R1 파일이 있거나, 혹은 fastq 파일 전체 개수 중 중복을 제거한 샘플 수를 세는 방식이 정확함
+  # 여기서는 간단하게 R1 패턴을 우선 검색하고 없으면 전체 fastq를 센다.
   n=$(find "$d" -maxdepth 1 -type f \( -name "*_R1_001.fastq.gz" -o -name "*_R1.fastq.gz" -o -name "*.R1.fastq.gz" \) | wc -l | tr -d ' ')
   if [ "$n" -eq 0 ]; then
-    n=$(find "$d" -maxdepth 1 -type f \( -name "*.fastq.gz" -o -name "*.fq.gz" \) | wc -l | tr -d ' ')
+    # 단일-엔드 샘플만 있을 경우를 위해 모든 fastq 파일 중 R2가 아닌 것들을 센다.
+    n=$(find "$d" -maxdepth 1 -type f \( -name "*.fastq.gz" -o -name "*.fq.gz" \) | grep -v "_R2" | wc -l | tr -d ' ')
   fi
   echo "$n"
 }
@@ -144,7 +147,7 @@ progress_snapshot(){
   bad="$(awk 'NR>1{n++} END{print n+0}' "$(dirname "$READ_DIR_ABS")/0_bad_fastqs/moved_bad_fastqs.tsv" 2>/dev/null || echo 0)"
   trim=$(find "$outdir/1_trim" -maxdepth 1 -type f -name "*.R1.paired.output.fastq.gz" 2>/dev/null | wc -l | tr -d ' ')
   map=$(find "$outdir/3_bowtie2_files" -maxdepth 1 -type f -name "*.sam" 2>/dev/null | wc -l | tr -d ' ')
-  counts=$(find "$outdir/5_counts" -maxdepth 1 -type f -name "*.counts" 2>/dev/null | wc -l | tr -d ' ')
+  counts=$(find "$outdir/4_htseq-count" -maxdepth 1 -type f -name "*.gene_id.minqual8.txt" 2>/dev/null | wc -l | tr -d ' ')
   merged="0"; [ -f "$outdir/merged_counts_with_gene_names.csv" ] && merged="1"
   printf "[Go_Rnake][Progress][%s][%s] total=%s bad=%s trim=%s map=%s counts=%s merged=%s\n" \
     "$stage" "$now" "$total" "$bad" \
@@ -195,7 +198,7 @@ if [ -n "$SNAKEDIR" ]; then
   [ -d "$SNAKEDIR" ] || { echo "[Go_Rnake] SNAKEDIR not found: $SNAKEDIR"; exit 1; }
   PIPELINE_DIR="$(cd "$SNAKEDIR" && pwd -P)"
 fi
-SNAKEFILE_NAME="Go_bacteriaRNake_paired_V4.smk"
+SNAKEFILE_NAME="Go_RNake.smk"
 if [ ! -f "$PIPELINE_DIR/$SNAKEFILE_NAME" ]; then
   echo "[Go_Rnake][FATAL] Snakefile not found: $PIPELINE_DIR/$SNAKEFILE_NAME"
   exit 1
@@ -205,6 +208,7 @@ echo "[Go_Rnake] Using Snakefile: $PIPELINE_DIR/$SNAKEFILE_NAME"
 run(){
   docker run --rm \
     -u "$(id -u):$(id -g)" \
+    -e HOME=/work \
     -v "$WORKDIR":/work \
     -v "$PIPELINE_DIR":/pipeline:ro \
     -v "$READ_DIR_ABS":/reads:ro \
@@ -212,7 +216,7 @@ run(){
     -v "$GFF_ABS":/refs/annotation.gff:ro \
     -w /work \
     "$IMAGE" \
-    "$@"
+    snakemake "$@"
 }
 
 BASE_ARGS=(

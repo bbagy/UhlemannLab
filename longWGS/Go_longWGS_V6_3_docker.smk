@@ -337,6 +337,7 @@ rule autocycler_assembly:
         outdir_abs=$(realpath -m "{AUTOCYCLER_DIR}/{wildcards.sample}")
         mkdir -p "$outdir_abs"
         cd "$outdir_abs"
+        failed_marker="autocycler_out/FAILED.txt"
 
         fail_and_exit() {{
             local reason="$1"
@@ -372,9 +373,30 @@ rule autocycler_assembly:
         jobs="{JOBS}"
         read_type="{READ_TYPE}"
         max_time="{MAX_TIME}"
+        min_read_depth=25
 
         genome_size=$(autocycler helper genome_size --reads "$reads" --threads "$threads" 2>> autocycler.stderr)
         echo "[autocycler] genome_size=$genome_size"
+
+        total_bases=$(zcat "$reads" | awk 'NR % 4 == 2 {{sum += length($0)}} END {{print sum + 0}}')
+        read_depth=$(awk -v bases="$total_bases" -v genome="$genome_size" 'BEGIN {{
+            if (genome <= 0) {{
+                print "0.0"
+            }} else {{
+                printf "%.1f", bases / genome
+            }}
+        }}')
+        echo "[autocycler] estimated_depth=${{read_depth}}x"
+
+        if [ "{PIPELINE_MODE}" = "permissive" ] && awk -v depth="$read_depth" -v min_depth="$min_read_depth" 'BEGIN {{exit !(depth < min_depth)}}'; then
+            mkdir -p autocycler_out
+            : > autocycler_out/consensus_assembly.fasta
+            : > autocycler_out/consensus_assembly.gfa
+            echo "subsample_shallow_depth" > "$failed_marker"
+            echo -e "{wildcards.sample}\tautocycler\tsubsample_failed;size_mb=$(du -m "$fq_abs" 2>/dev/null | awk '{{print $1}}');last_err=precheck_depth_${{read_depth}}x_below_${{min_read_depth}}x" >> "$fail_log" || true
+            echo "[autocycler][WARN] sample={wildcards.sample} skipped in permissive mode (estimated depth $read_depth x < $min_read_depth x)." 1>&2
+            exit 0
+        fi
 
         echo "[autocycler] subsample ..."
         autocycler subsample \
@@ -496,9 +518,16 @@ rule autocycler_reorient_with_dnaapler:
         in_fasta=$(realpath "{input.fasta}")
         outdir=$(dirname "{output.fasta}")
         tmpdir="$outdir/dnaapler_out"
+        failed_marker="$outdir/FAILED.txt"
         mkdir -p "$outdir"
         rm -rf "$tmpdir"
         rm -f "{output.fasta}" "{output.done}"
+
+        if [ -f "$failed_marker" ] || [ ! -s "{input.fasta}" ] || [ ! -s "{input.gfa}" ]; then
+            : > "{output.fasta}"
+            echo "SKIPPED" > "{output.done}"
+            exit 0
+        fi
 
         dnaapler all \
           -i "$in_fasta" \
@@ -538,6 +567,12 @@ rule autocycler_make_metrics_table:
 
         for sample_dir in {params.sample_dirs}; do
             sample_name=$(basename "$sample_dir")
+            if [ -f "$sample_dir/autocycler_out/FAILED.txt" ]; then
+                continue
+            fi
+            if [ ! -s "$sample_dir/autocycler_out/consensus_assembly.gfa" ]; then
+                continue
+            fi
             autocycler table -a "$sample_dir" -n "$sample_name" >> "$raw_tsv"
         done
 
@@ -565,7 +600,7 @@ def looks_like_header(row):
         return False
     first = row[0].strip().lower()
     second = row[1].strip().lower()
-    header_tokens = {"name", "sample", "read_count", "reads", "input_read_count"}
+    header_tokens = {{"name", "sample", "read_count", "reads", "input_read_count"}}
     return first in header_tokens or second in header_tokens
 
 if looks_like_header(rows[0]):
@@ -573,7 +608,7 @@ if looks_like_header(rows[0]):
     data_rows = rows[1:]
 else:
     max_cols = max(len(r) for r in rows)
-    header = ["sample"] + [f"metric_{i:02d}" for i in range(1, max_cols)]
+    header = ["sample"] + [f"metric_{{i:02d}}" for i in range(1, max_cols)]
     data_rows = rows
 
 with out_path.open("w", newline="") as handle:
@@ -611,6 +646,12 @@ rule medaka_polish:
         [ -f "$fail_log" ] || echo -e "sample\tstage\treason" > "$fail_log"
         trap 'echo -e "{wildcards.sample}\tmedaka\tcommand_failed" >> "$fail_log"' ERR
         mkdir -p "{MEDAKA_DIR}"
+        failed_marker="{AUTOCYCLER_DIR}/{wildcards.sample}/autocycler_out/FAILED.txt"
+
+        if [ -f "$failed_marker" ] || [ ! -s "{input.draft}" ]; then
+            : > "{output.final}"
+            exit 0
+        fi
 
         fq=$(realpath {input.fq})
         draft=$(realpath {input.draft})
@@ -696,6 +737,11 @@ rule quast_qc:
         rm -rf "$outdir"
         mkdir -p "$outdir"
 
+        if [ ! -s "{input.asm}" ]; then
+            : > "{output.report}"
+            exit 0
+        fi
+
         micromamba run -n quast_env quast.py {input.asm} \
           -o "$outdir" \
           --threads {threads} \
@@ -740,6 +786,12 @@ rule checkm2:
         logfile="$outdir/checkm2.log"
 
         mkdir -p "$outdir"
+
+        if [ ! -s "{input.asm}" ]; then
+            : > "{output.report}"
+            echo "SKIPPED" > "{output.done}"
+            exit 0
+        fi
 
         # Already done? skip
         if [ -f "{output.done}" ] && [ -f "{output.report}" ]; then
@@ -821,6 +873,14 @@ rule coverage:
         trap 'echo -e "{wildcards.sample}\tcoverage\tcommand_failed" >> "$fail_log"' ERR
         outdir="{COV_DIR}/{wildcards.sample}"
         mkdir -p "$outdir"
+
+        if [ ! -s "{input.asm}" ]; then
+            : > "{output.bam}"
+            : > "{output.bai}"
+            : > "{output.tsv}"
+            echo "SKIPPED" > "{output.done}"
+            exit 0
+        fi
 
         fq=$(realpath {input.fq})
         asm=$(realpath {input.asm})
@@ -970,6 +1030,13 @@ rule bakta_annotate:
 
         mkdir -p "{BAKTA_DIR}"
 
+        if [ ! -s "{input.fasta}" ]; then
+            mkdir -p "$outdir"
+            echo "skipped_missing_assembly" > "$fail_marker"
+            echo "SKIPPED" > "$done_file"
+            exit 0
+        fi
+
         fasta=$(realpath "{input.fasta}")
 
         if bakta \
@@ -1011,13 +1078,11 @@ def existing_summary_inputs(_wc=None):
         ]:
             if os.path.exists(p):
                 deps.append(p)
-    for p in [
+    deps.extend([
         AUTOCYCLER_TABLE_TSV,
         os.path.join(KRAKEN_DIR, "kraken2_db_info.txt"),
         os.path.join(KRAKEN_DIR, "kraken2_summary.csv"),
-    ]:
-        if os.path.exists(p):
-            deps.append(p)
+    ])
     return sorted(set(deps))
 
 
@@ -1077,7 +1142,10 @@ checkm2_files = sorted(glob.glob(os.path.join(checkm2_dir, "*", "quality_report.
 checkm2_all = []
 for f in checkm2_files:
     sample = os.path.basename(os.path.dirname(f))
-    df = pd.read_csv(f, sep="\t")
+    try:
+        df = pd.read_csv(f, sep="\t")
+    except Exception:
+        continue
     df.insert(0, "sample", sample)
     checkm2_all.append(df)
 
@@ -1091,7 +1159,11 @@ cov_files = sorted(glob.glob(os.path.join(cov_dir, "*", "*_contig_mean_depth.tsv
 cov_rows = []
 for f in cov_files:
     sample = os.path.basename(os.path.dirname(f))
-    df = pd.read_csv(f, sep="\t", header=None, names=["contig", "mean_depth"])
+    try:
+        df = pd.read_csv(f, sep="\t", header=None, names=["contig", "mean_depth"])
+    except Exception:
+        cov_rows.append({{"sample": sample}})
+        continue
 
     if df.shape[0] == 0:
         cov_rows.append({{"sample": sample}})
@@ -1196,6 +1268,8 @@ else:
 # -------------------------
 status_rows = []
 for sample in samples:
+    autocycler_failed_file = os.path.join(autocycler_dir, sample, "autocycler_out", "FAILED.txt")
+    autocycler_failed = os.path.exists(autocycler_failed_file)
     bakta_done_file = os.path.join(bakta_dir, sample, "DONE.txt")
     bakta_failed_file = os.path.join(bakta_dir, sample, "FAILED.txt")
     bakta_done = False
@@ -1204,17 +1278,26 @@ for sample in samples:
             bakta_done = open(bakta_done_file).read().strip() == "DONE"
         except Exception:
             bakta_done = False
+    autocycler_fasta_path = os.path.join(autocycler_dir, sample, "autocycler_out", "consensus_assembly.fasta")
+    autocycler_gfa_path = os.path.join(autocycler_dir, sample, "autocycler_out", "consensus_assembly.gfa")
+    dnaapler_gfa_path = os.path.join(autocycler_dir, sample, "autocycler_out", "consensus_assembly.reoriented.gfa")
+    dnaapler_fasta_path = os.path.join(autocycler_dir, sample, "autocycler_out", "consensus_assembly.reoriented.fasta")
+    medaka_final_path = os.path.join(medaka_dir, f"{sample}_final_assembly.fasta")
+    quast_report_path = os.path.join(quast_dir, sample, "report.txt")
+    checkm2_report_path = os.path.join(checkm2_dir, sample, "quality_report.tsv")
+    coverage_tsv_path = os.path.join(cov_dir, sample, f"{sample}_contig_mean_depth.tsv")
     status_rows.append({{
         "sample": sample,
         "qc_clean_fastq": os.path.exists(os.path.join(qc_dir, f"{{sample}}.clean.fastq.gz")),
-        "autocycler_fasta": os.path.exists(os.path.join(autocycler_dir, sample, "autocycler_out", "consensus_assembly.fasta")),
-        "autocycler_gfa": os.path.exists(os.path.join(autocycler_dir, sample, "autocycler_out", "consensus_assembly.gfa")),
-        "dnaapler_gfa": os.path.exists(os.path.join(autocycler_dir, sample, "autocycler_out", "consensus_assembly.reoriented.gfa")),
-        "dnaapler_fasta": os.path.exists(os.path.join(autocycler_dir, sample, "autocycler_out", "consensus_assembly.reoriented.fasta")),
-        "medaka_final_fasta": os.path.exists(os.path.join(medaka_dir, f"{{sample}}_final_assembly.fasta")),
-        "quast_report": os.path.exists(os.path.join(quast_dir, sample, "report.txt")),
-        "checkm2_report": os.path.exists(os.path.join(checkm2_dir, sample, "quality_report.tsv")),
-        "coverage_tsv": os.path.exists(os.path.join(cov_dir, sample, f"{{sample}}_contig_mean_depth.tsv")),
+        "autocycler_failed": autocycler_failed,
+        "autocycler_fasta": (not autocycler_failed) and os.path.exists(autocycler_fasta_path) and os.path.getsize(autocycler_fasta_path) > 0,
+        "autocycler_gfa": (not autocycler_failed) and os.path.exists(autocycler_gfa_path) and os.path.getsize(autocycler_gfa_path) > 0,
+        "dnaapler_gfa": os.path.exists(dnaapler_gfa_path) and os.path.getsize(dnaapler_gfa_path) > 0,
+        "dnaapler_fasta": os.path.exists(dnaapler_fasta_path) and os.path.getsize(dnaapler_fasta_path) > 0,
+        "medaka_final_fasta": os.path.exists(medaka_final_path) and os.path.getsize(medaka_final_path) > 0,
+        "quast_report": os.path.exists(quast_report_path) and os.path.getsize(quast_report_path) > 0,
+        "checkm2_report": os.path.exists(checkm2_report_path) and os.path.getsize(checkm2_report_path) > 0,
+        "coverage_tsv": os.path.exists(coverage_tsv_path) and os.path.getsize(coverage_tsv_path) > 0,
         "kraken2_report": os.path.exists(os.path.join(kraken_dir, f"{{sample}}.kreport")),
         "bakta_done": bakta_done,
         "bakta_failed": os.path.exists(bakta_failed_file),

@@ -482,6 +482,134 @@ p, li {
     linear-gradient(120deg, #f4f8ff 0%, #e6efff 100%);
 }
 
+/* KBracken featured card */
+.pipeline-card.featured.kbracken-featured {
+  border-color: #b78535;
+  background:
+    radial-gradient(circle at 92% 12%, #fbe9c4 0%, transparent 42%),
+    linear-gradient(180deg, #fffaee 0%, #fdf1d8 100%);
+}
+
+.pipeline-card.featured.kbracken-featured h3 {
+  color: #6f4c15;
+}
+
+.pipeline-card.featured.kbracken-featured .card-badge.live {
+  border-color: #b78535;
+  color: #6f4c15;
+  background: #fdf2da;
+}
+
+.kbracken-visual {
+  margin-top: 10px;
+  border: 2px solid #d4b27a;
+  border-radius: 10px;
+  height: 92px;
+  background:
+    radial-gradient(circle at 26% 48%, #d6a44a 0 14%, transparent 15%),
+    radial-gradient(circle at 60% 36%, #c08a2f 0 9%, transparent 10%),
+    radial-gradient(circle at 78% 64%, #e3b863 0 11%, transparent 12%),
+    linear-gradient(120deg, #fff5dd 0%, #fbe8bf 100%);
+}
+
+/* Humann featured card */
+.pipeline-card.featured.humann-featured {
+  border-color: #d35400;
+  background:
+    radial-gradient(circle at 92% 12%, #ffe1c4 0%, transparent 42%),
+    linear-gradient(180deg, #fff7ef 0%, #ffeadb 100%);
+}
+
+.pipeline-card.featured.humann-featured h3 {
+  color: #8a3a06;
+}
+
+.pipeline-card.featured.humann-featured .card-badge.live {
+  border-color: #d35400;
+  color: #8a3a06;
+  background: #ffe7d1;
+}
+
+.humann-visual {
+  margin-top: 10px;
+  border: 2px solid #e8a875;
+  border-radius: 10px;
+  height: 92px;
+  background:
+    radial-gradient(circle at 22% 50%, #d97724 0 12%, transparent 13%),
+    radial-gradient(circle at 46% 35%, #e89255 0 9%, transparent 10%),
+    radial-gradient(circle at 70% 60%, #c25a14 0 10%, transparent 11%),
+    radial-gradient(circle at 86% 30%, #f1ad79 0 8%, transparent 9%),
+    linear-gradient(120deg, #fff2e3 0%, #ffd9b5 100%);
+}
+
+/* RNake featured card */
+.pipeline-card.featured.rnake-featured {
+  border-color: #7a4ea6;
+  background:
+    radial-gradient(circle at 92% 12%, #ead7f7 0%, transparent 42%),
+    linear-gradient(180deg, #faf3ff 0%, #f0e1fb 100%);
+}
+
+.pipeline-card.featured.rnake-featured h3 {
+  color: #4b2378;
+}
+
+.pipeline-card.featured.rnake-featured .card-badge.live {
+  border-color: #7a4ea6;
+  color: #4b2378;
+  background: #f0e1fb;
+}
+
+.rnake-visual {
+  margin-top: 10px;
+  border: 2px solid #c1a0d7;
+  border-radius: 10px;
+  height: 92px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #8b5db5 0 7px,
+      #ead7f7 7px 14px
+    ),
+    radial-gradient(circle at 78% 50%, #6e3f9c 0 10%, transparent 11%),
+    linear-gradient(120deg, #faf3ff 0%, #eedcfa 100%);
+}
+
+/* Humann theme accents (subpage) */
+.theme-humann .badge {
+  border-color: #f0bd92;
+  color: #8a3a06;
+  background: #fff1e0;
+}
+.theme-humann .status-tested {
+  border-color: #d35400;
+  background: #ffe7d1;
+  color: #8a3a06;
+}
+.theme-humann .node {
+  border-color: #efb888;
+  background: #fff5ea;
+  color: #8a3a06;
+}
+.theme-humann .arrow {
+  color: #a55214;
+}
+
+/* KBracken theme accents already exist; keep status-tested colors consistent */
+.theme-kbracken .status-tested {
+  border-color: #b78535;
+  background: #fbf2df;
+  color: #6f4c15;
+}
+
+/* RNake theme accents already exist; keep status-tested colors consistent */
+.theme-rna .status-tested {
+  border-color: #7a4ea6;
+  background: #f3eaf9;
+  color: #4b2378;
+}
+
 .flow {
   display: flex;
   flex-wrap: wrap;
