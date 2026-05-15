@@ -413,12 +413,23 @@ p, li {
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 14px;
+  display: flex;
+  flex-direction: column;
 }
 
 .card-link {
-  display: block;
+  display: flex;
+  flex-direction: column;
   text-decoration: none;
   color: inherit;
+}
+
+.pipeline-card > .longwgs-visual,
+.pipeline-card > .shortwgs-visual,
+.pipeline-card > .kbracken-visual,
+.pipeline-card > .humann-visual,
+.pipeline-card > .rnake-visual {
+  margin-top: auto;
 }
 
 .card-link:hover {
