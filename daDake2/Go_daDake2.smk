@@ -382,35 +382,33 @@ rule export_tables:
 # ══════════════════════════════════════════════════════════════════════════════
 rule qiime_tree:
     input:
-        fna = f"{{proj}}_dada2/1_out/{{proj}}.{DATE}.seqs.fna",
+        fna       = f"{{proj}}_dada2/1_out/{{proj}}.{DATE}.seqs.fna",
+        asv_table = f"{{proj}}_dada2/1_out/{{proj}}.{DATE}.asvTable.csv",
     output:
         nwk = f"{{proj}}_dada2/1_out/{{proj}}.{DATE}.seqs.fna_tree/exported-tree/tree.nwk",
     log: "{proj}_dada2/logs/qiime_tree.log"
     params:
-        fna_name = f"{{proj}}.{DATE}.seqs.fna",
-        out_dir  = f"{{proj}}_dada2/1_out",
+        fna      = f"{{proj}}_dada2/1_out/{{proj}}.{DATE}.seqs.fna",
+        tree_dir = f"{{proj}}_dada2/1_out/{{proj}}.{DATE}.seqs.fna_tree",
+        stem     = f"{{proj}}.{DATE}.seqs",
     shell:
         r"""
         set -euo pipefail
-        cd "{params.out_dir}"
-
-        FNA="{params.fna_name}"
-        TREE_DIR="${{FNA}}_tree"
-        mkdir -p "$TREE_DIR"
+        mkdir -p "$(dirname {log})" "{params.tree_dir}"
 
         conda run -n qiime2 qiime tools import \
-            --input-path  "$FNA" \
-            --output-path "$TREE_DIR/${{FNA%.fna}}.qza" \
+            --input-path  "{params.fna}" \
+            --output-path "{params.tree_dir}/{params.stem}.qza" \
             --type        'FeatureData[Sequence]' >> {log} 2>&1
 
         conda run -n qiime2 qiime phylogeny align-to-tree-mafft-fasttree \
-            --i-sequences      "$TREE_DIR/${{FNA%.fna}}.qza" \
-            --o-alignment      "$TREE_DIR/${{FNA%.fna}}_aligned-rep-seqs.qza" \
-            --o-masked-alignment "$TREE_DIR/${{FNA%.fna}}_masked-aligned-rep-seqs.qza" \
-            --o-tree           "$TREE_DIR/${{FNA%.fna}}_unrooted-tree.qza" \
-            --o-rooted-tree    "$TREE_DIR/${{FNA%.fna}}_rooted-tree.qza" >> {log} 2>&1
+            --i-sequences        "{params.tree_dir}/{params.stem}.qza" \
+            --o-alignment        "{params.tree_dir}/{params.stem}_aligned-rep-seqs.qza" \
+            --o-masked-alignment "{params.tree_dir}/{params.stem}_masked-aligned-rep-seqs.qza" \
+            --o-tree             "{params.tree_dir}/{params.stem}_unrooted-tree.qza" \
+            --o-rooted-tree      "{params.tree_dir}/{params.stem}_rooted-tree.qza" >> {log} 2>&1
 
         conda run -n qiime2 qiime tools export \
-            --input-path  "$TREE_DIR/${{FNA%.fna}}_rooted-tree.qza" \
-            --output-path "$TREE_DIR/exported-tree" >> {log} 2>&1
+            --input-path  "{params.tree_dir}/{params.stem}_rooted-tree.qza" \
+            --output-path "{params.tree_dir}/exported-tree" >> {log} 2>&1
         """
