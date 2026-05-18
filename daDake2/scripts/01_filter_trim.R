@@ -35,14 +35,13 @@ if (file.exists(opt$failed_csv)) {
 
 # ── Discover R1/R2 ───────────────────────────────────────────────────────────
 if (type_run == "illumina_ITS") {
-  # after cutadapt, only _L001_ naming
-  fnFs <- sort(list.files(fastq_dir, pattern="_L001_R1_001\\.fastq\\.gz$", full.names=TRUE))
-  fnRs <- sort(list.files(fastq_dir, pattern="_L001_R2_001\\.fastq\\.gz$", full.names=TRUE))
-  sample.names <- sub("_L001_R1_001\\.fastq\\.gz$", "", basename(fnFs))
+  fnFs <- sort(list.files(fastq_dir, pattern="(_L001_R1_001|_R1_001|_R1)\\.fastq\\.gz$", full.names=TRUE))
+  fnRs <- sort(list.files(fastq_dir, pattern="(_L001_R2_001|_R2_001|_R2)\\.fastq\\.gz$", full.names=TRUE))
+  sample.names <- sub("(_L001_R1_001|_R1_001|_R1)\\.fastq\\.gz$", "", basename(fnFs))
 } else {
-  fnFs <- sort(list.files(fastq_dir, pattern="(_L001_R1_001|_R1_001)\\.fastq\\.gz$", full.names=TRUE))
-  fnRs <- sort(list.files(fastq_dir, pattern="(_L001_R2_001|_R2_001)\\.fastq\\.gz$", full.names=TRUE))
-  sample.names <- sub("(_L001_R1_001|_R1_001)\\.fastq\\.gz$", "", basename(fnFs))
+  fnFs <- sort(list.files(fastq_dir, pattern="(_L001_R1_001|_R1_001|_R1)\\.fastq\\.gz$", full.names=TRUE))
+  fnRs <- sort(list.files(fastq_dir, pattern="(_L001_R2_001|_R2_001|_R2)\\.fastq\\.gz$", full.names=TRUE))
+  sample.names <- sub("(_L001_R1_001|_R1_001|_R1)\\.fastq\\.gz$", "", basename(fnFs))
 }
 
 # exclude failed
@@ -109,7 +108,7 @@ if (type_run == "illumina_ITS") {
     fnFs, filtFs, fnRs, filtRs,
     truncLen  = c(opt$trunclen_f, opt$trunclen_r),
     trimLeft  = c(opt$trimleft_f, opt$trimleft_r),
-    maxEE     = c(2, 5), truncQ=2, rm.phix=TRUE,
+    maxEE     = c(2, 2), truncQ=2, rm.phix=TRUE,
     compress  = TRUE, multithread=TRUE, verbose=TRUE, matchIDs=TRUE
   )
 }

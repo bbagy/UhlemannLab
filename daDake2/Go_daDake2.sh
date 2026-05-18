@@ -27,7 +27,7 @@ Required:
   -d DB       taxonomy DB path (SILVA or UNITE .fa.gz)
 
 Optional:
-  -s SNAKEDIR directory containing Go_daDake2.smk (default: same dir as this script)
+  -s SNAKEPATH directory containing a Snakefile, or a specific .smk file
   -c CORES    CPU cores (default: 4)
   -m BYTES    min FASTQ size to include (default: 10000)
   -D          delete filtered FASTQ dirs after successful run
@@ -75,18 +75,27 @@ esac
 
 # smk 위치 결정: -s 옵션 > 스크립트와 같은 디렉토리
 if [[ -n "$SNAKEDIR" ]]; then
-  PIPELINE_DIR="$(abs_path "$SNAKEDIR")"
-  [[ -d "$PIPELINE_DIR" ]] || { echo "[ERROR] -s SNAKEDIR not found: $SNAKEDIR"; exit 1; }
+  SNAKEPATH="$(abs_path "$SNAKEDIR")"
+  if [[ -d "$SNAKEPATH" ]]; then
+    PIPELINE_DIR="$SNAKEPATH"
+    SMK="${PIPELINE_DIR}/Go_daDake2.smk"
+  elif [[ -f "$SNAKEPATH" ]]; then
+    PIPELINE_DIR="$(cd "$(dirname "$SNAKEPATH")" && pwd -P)"
+    SMK="$SNAKEPATH"
+  else
+    echo "[ERROR] -s path not found: $SNAKEDIR"
+    exit 1
+  fi
 else
   PIPELINE_DIR="$SCRIPT_DIR"
+  SMK="${PIPELINE_DIR}/Go_daDake2.smk"
 fi
 
-SMK="${PIPELINE_DIR}/Go_daDake2.smk"
 SCRIPTS_DIR="${PIPELINE_DIR}/scripts"
 
 [[ -f "$SMK" ]] || {
   echo "[ERROR] Snakefile not found: $SMK"
-  echo "        Use -s SNAKEDIR to specify the directory containing Go_daDake2.smk"
+  echo "        Use -s with a directory or a specific .smk file"
   exit 1
 }
 

@@ -27,14 +27,14 @@ SCRIPTS      = config.get("scripts_dir", os.path.join(os.path.dirname(workflow.s
 
 # Type-specific parameters
 _PARAMS = {
-    "standard_V3V4": dict(trimleft_f=20, trimleft_r=21, trunclen_f=250, trunclen_r=220,
+    "standard_V3V4": dict(trimleft_f=20, trimleft_r=21, trunclen_f=240, trunclen_r=240,
                           primer_f="", primer_r="", filt_subdir="3_DADA2_filtered",
                           filt_sfx_r1="_R1_filt.fastq.gz", filt_sfx_r2="_R2_filt.fastq.gz",
-                          remove_host=True),
+                          remove_host=False),
     "zymo_V1V2":     dict(trimleft_f=20, trimleft_r=17, trunclen_f=230, trunclen_r=170,
                           primer_f="", primer_r="", filt_subdir="3_DADA2_filtered",
                           filt_sfx_r1="_R1_filt.fastq.gz", filt_sfx_r2="_R2_filt.fastq.gz",
-                          remove_host=True),
+                          remove_host=False),
     "illumina_ITS":  dict(trimleft_f=0,  trimleft_r=0,  trunclen_f=240, trunclen_r=200,
                           primer_f="GCATCGATGAAGAACGCAG", primer_r="TCCTCCGCTTATTGATATGC",
                           filt_subdir="4_DADA2_filtered",
@@ -117,6 +117,7 @@ rule all:
         expand(f"{{proj}}_dada2/2_rds/ps.{{proj}}.{DATE}.rds",        proj=PROJECT_DIRS),
         expand(f"{{proj}}_dada2/1_out/{{proj}}.{DATE}.seqs.fna_tree/exported-tree/tree.nwk",
                proj=PROJECT_DIRS),
+        expand("zip_projects/{proj}_dada2.zip", proj=PROJECT_DIRS),
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ITS ONLY: cutadapt primer trimming
@@ -139,20 +140,22 @@ if TYPE == "illumina_ITS":
 
             shopt -s nullglob
             R1S=( {input.fastq_dir}/*_L001_R1_001.fastq.gz \
-                  {input.fastq_dir}/*_R1_001.fastq.gz )
+                  {input.fastq_dir}/*_R1_001.fastq.gz \
+                  {input.fastq_dir}/*_R1.fastq.gz )
             shopt -u nullglob
 
             for R1 in "${{R1S[@]}}"; do
                 R2="${{R1/_R1_/_R2_}}"
                 R2="${{R2/_L001_R1_001.fastq.gz/_L001_R2_001.fastq.gz}}"
                 R2="${{R2/_R1_001.fastq.gz/_R2_001.fastq.gz}}"
+                R2="${{R2/_R1.fastq.gz/_R2.fastq.gz}}"
                 [ -f "$R2" ] || {{ echo "[cutadapt] SKIP $R1 — R2 missing" >> {log}; continue; }}
                 OUT_R1="{params.cut_dir}/$(basename "$R1")"
                 OUT_R2="{params.cut_dir}/$(basename "$R2")"
                 cutadapt \
                     -g {params.primer_f}  -a {params.primer_rrc} \
                     -G {params.primer_r}  -A {params.primer_frc} \
-                    -n 2 --discard-untrimmed \
+                    -n 2 \
                     -o "$OUT_R1" -p "$OUT_R2" \
                     "$R1" "$R2" >> {log} 2>&1
             done
@@ -411,4 +414,21 @@ rule qiime_tree:
         conda run -n qiime2 qiime tools export \
             --input-path  "{params.tree_dir}/{params.stem}_rooted-tree.qza" \
             --output-path "{params.tree_dir}/exported-tree" >> {log} 2>&1
+        """
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Step 7: zip results
+# ══════════════════════════════════════════════════════════════════════════════
+rule create_zip:
+    input:
+        nwk = f"{{proj}}_dada2/1_out/{{proj}}.{DATE}.seqs.fna_tree/exported-tree/tree.nwk",
+        ps  = f"{{proj}}_dada2/2_rds/ps.{{proj}}.{DATE}.rds",
+    output:
+        zip = "zip_projects/{proj}_dada2.zip",
+    shell:
+        r"""
+        set -euo pipefail
+        mkdir -p zip_projects
+        zip -s 3700m -r {output.zip} {wildcards.proj}_dada2 >/dev/null
+        echo "[create_zip] {wildcards.proj}_dada2.zip done"
         """
