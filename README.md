@@ -18,6 +18,7 @@ Available now (production-ready):
 - `KBracken`: Kraken2 + Bracken profiling and merged MPA-style tables
 - `Humann`: HUMAnN3 + MetaPhlAn4 functional profiling with KEGG orthology output
 - `RNake`: bacterial RNA-seq trimming/mapping/count workflow
+- `daDake2`: DADA2 amplicon pipeline for 16S (V3V4, V1V2) and ITS with per-project checkpointing
 
 In testing:
 
@@ -56,6 +57,7 @@ Go_toWorkstation.sh shortWGS
 Go_toWorkstation.sh KBracken
 Go_toWorkstation.sh Humann
 Go_toWorkstation.sh RNake
+Go_toWorkstation.sh daDake2
 Go_toWorkstation.sh MAGs
 Go_toWorkstation.sh all
 ```
@@ -68,6 +70,7 @@ heekuk_path/Go_shortWGS.smk
 heekuk_path/Go_KBracken.smk
 heekuk_path/Go_Humann.smk
 heekuk_path/Go_RNake.smk
+heekuk_path/daDake2/Go_daDake2.smk       ← symlink: heekuk_path/Go_daDake2.sh
 heekuk_path/Go_MAGs_QC.smk
 heekuk_path/Go_MAGs_Assembly.smk
 heekuk_path/Go_MAGs_Annotation.smk
