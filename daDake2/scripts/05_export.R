@@ -29,8 +29,17 @@ filter_stats  <- readRDS(file.path(rds_dir, "filter_stats.rds"))
 dada_stats    <- readRDS(file.path(rds_dir, "dada_stats.rds"))
 
 # ── track.csv ────────────────────────────────────────────────────────────────
-# align filter_stats rows to seqtab.nochim samples
-fs_sn  <- rownames(filter_stats)
+# filterAndTrim rownames = full input paths; seqtab.nochim rownames = sample names
+# → strip path and R1 suffix to align
+fs_raw <- rownames(filter_stats)
+fs_sn  <- basename(fs_raw)
+if (type_run == "illumina_ITS") {
+  fs_sn <- sub("_L001_R1_001\\.fastq\\.gz$", "", fs_sn)
+} else {
+  fs_sn <- sub("(_L001)?_R1(_001)?\\.fastq\\.gz$", "", fs_sn)
+}
+rownames(filter_stats) <- fs_sn
+
 st_sn  <- rownames(seqtab.nochim)
 fs_sub <- filter_stats[fs_sn %in% st_sn, , drop=FALSE]
 fs_sub <- fs_sub[match(st_sn, rownames(fs_sub)), , drop=FALSE]

@@ -66,9 +66,11 @@ dadaRs <- dada(derepRs, err=errR, multithread=TRUE)
 
 # ── Merge pairs ───────────────────────────────────────────────────────────────
 if (type_run == "illumina_ITS") {
-  mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs, verbose=TRUE)
+  mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs,
+                        minOverlap=10, maxMismatch=1, verbose=TRUE)
 } else {
-  mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs, verbose=FALSE)
+  mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs,
+                        minOverlap=10, maxMismatch=1, verbose=FALSE)
 }
 
 # ── Sequence table + chimera removal ─────────────────────────────────────────

@@ -98,7 +98,7 @@ if (type_run == "illumina_ITS") {
   filter_out <- filterAndTrim(
     fnFs, filtFs, fnRs, filtRs,
     truncLen   = c(opt$trunclen_f, opt$trunclen_r),
-    maxEE      = c(2, 2), truncQ=2, rm.phix=TRUE,
+    maxEE      = c(2, 5), truncQ=2, rm.phix=TRUE,
     maxN=0, minLen=50, compress=TRUE, multithread=TRUE,
     verbose=TRUE, matchIDs=TRUE
   )
@@ -109,7 +109,7 @@ if (type_run == "illumina_ITS") {
     fnFs, filtFs, fnRs, filtRs,
     truncLen  = c(opt$trunclen_f, opt$trunclen_r),
     trimLeft  = c(opt$trimleft_f, opt$trimleft_r),
-    maxEE     = c(2, 2), truncQ=2, rm.phix=TRUE,
+    maxEE     = c(2, 5), truncQ=2, rm.phix=TRUE,
     compress  = TRUE, multithread=TRUE, verbose=TRUE, matchIDs=TRUE
   )
 }
