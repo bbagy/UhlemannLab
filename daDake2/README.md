@@ -21,6 +21,10 @@ Supports three amplicon types:
 - Snakefile: `Go_daDake2.smk`
 - R scripts: `scripts/01_filter_trim.R` → `02_learn_errors.R` → `03_denoise_merge.R` → `04_taxonomy.R` → `05_export.R`
 
+Single entrypoint design:
+- use one wrapper + one Snakefile
+- switch amplicon behavior with `-t standard_V3V4 | zymo_V1V2 | illumina_ITS`
+
 ## Pipeline
 
 ```mermaid
@@ -72,9 +76,10 @@ Go_daDake2.sh \
 | `-t` | - | Amplicon type: `standard_V3V4` \| `zymo_V1V2` \| `illumina_ITS` |
 | `-i` | - | Comma-separated project FASTQ directories (`"ProjA,ProjB"`) |
 | `-d` | - | Taxonomy DB path (SILVA or UNITE `.fa.gz`) |
-| `-s` | same dir as script | Directory containing `Go_daDake2.smk` (use when running via symlink) |
+| `-s` | same dir as script | Directory containing a Snakefile, or a specific `.smk` file |
 | `-c` | `4` | Snakemake cores |
 | `-m` | `10000` | Minimum FASTQ size in bytes (smaller → `failed.csv`) |
+| `-D` | off | Delete filtered FASTQ dirs after a successful run |
 | `-n` | off | Dry-run (`--dry-run`) |
 | `-K` | off | Keep going (`--keep-going`) |
 
@@ -83,11 +88,12 @@ Go_daDake2.sh \
 | Parameter | `standard_V3V4` | `zymo_V1V2` | `illumina_ITS` |
 |---|---|---|---|
 | trimLeft F/R | 20 / 21 | 20 / 17 | — |
-| truncLen F/R | 250 / 220 | 230 / 170 | 240 / 200 |
+| truncLen F/R | 240 / 240 | 230 / 170 | 240 / 200 |
 | Primer trimming | — | — | cutadapt |
-| Host removal | Yes | Yes | No |
+| Host removal | No | No | No |
 | Chimera minFold | 1 | 1 | default |
 | Mapping files | Yes | Yes | No |
+| Taxonomy `tryRC` | Yes | Yes | Yes |
 
 ## Input Layout
 
@@ -153,6 +159,7 @@ Key files:
 - `1_out/{proj}.{date}.track.csv` — read counts at each step (input → filtered → denoised → merged → nonchim)
 - `2_rds/ps.{proj}.{date}.rds` — phyloseq object for downstream R analysis
 - `failed.csv` — samples excluded from analysis with reason
+- `zip_projects/{proj}_dada2.zip` — split zip archive of the full project result folder
 
 ## Checkpointing
 
@@ -186,7 +193,7 @@ After `Go_toWorkstation.sh daDake2`, files are placed as:
       05_export.R
 ```
 
-When running via symlink, the wrapper resolves the real path automatically. If it fails, use `-s` to specify the smk directory:
+When running via symlink, the wrapper resolves the real path automatically. If it fails, use `-s` to specify the pipeline directory or a specific `.smk` file:
 
 ```bash
 Go_daDake2.sh -t standard_V3V4 -i "ProjA" -d /path/to/silva.fa.gz \
@@ -236,28 +243,28 @@ Go_daDake2.sh \
   -K
 ```
 
-Download results:
-
-```bash
-sshpass -p "microbiomecore2@" scp -r \
-  uhlemann@156.145.138.130:/path/to/ProjA_dada2/1_out .
-```
-
 ## Operational Notes
 
 - DATE is fixed at pipeline launch time (`yymmdd`) and baked into all output filenames — rerunning on a different day does not overwrite prior outputs.
-- Taxonomy assignment uses SILVA `taxLevels` with `minBoot=80` for both 16S types. For ITS, UNITE DB is used.
-- Host removal (NA phylum, Chloroplast, Mitochondria) is applied for 16S types only; the cleaned `seqtab.nochim.rds` is re-saved after taxonomy so the export step is consistent.
-- `addSpecies()` is not used (no species DB needed).
+- Taxonomy assignment uses `minBoot=80` and `tryRC=TRUE`.
+- Taxonomy DB is provided by `-d`: typically SILVA for 16S and UNITE for ITS.
+- Host removal is disabled by default for all current types to preserve old `Go_dada2.R` behavior.
+- `addSpecies()` is currently not used because the wrapper writes `sdb: ""`.
 - Mapping template CSVs (`3_map/`) are generated for 16S types only, as empty scaffolds for metadata entry.
 - Lock errors are auto-handled by the wrapper (`--unlock` then retry).
-- qiime2 tree step tries `conda run -n qiime2 qiime` first, then falls back to `conda activate`.
+- The wrapper supports `--keep-going` via `-K`, and the pipeline records small or missing FASTQ pairs in `failed.csv` before continuing with the remaining samples.
+- Samples that filter to zero reads are also appended to `failed.csv`.
+- qiime2 tree steps use `conda run -n qiime2 qiime`.
+- Successful runs can optionally delete `3_DADA2_filtered`, `4_DADA2_filtered`, and `3_path.cut` with `-D`.
 
 ## Troubleshooting
 
 - `Error: Snakefile not found` when running via symlink
-  - use `-s /home/uhlemann/heekuk_path/daDake2` to specify the smk directory explicitly
+  - use `-s /home/uhlemann/heekuk_path/daDake2` or `-s /home/uhlemann/heekuk_path/daDake2/Go_daDake2.smk`
 - All samples in `failed.csv` / no passing samples
+  - check FASTQ naming, pair completeness, and the `-m` minimum size threshold
+- `track.csv` row names differ from old runs
+  - current output normalizes to sample IDs like `SampleA` rather than full FASTQ filenames
   - check FASTQ file sizes with `ls -lh` and lower `-m` if needed
 - `learnErrors` takes very long
   - expected for large projects; it reads up to 1M reads per strand

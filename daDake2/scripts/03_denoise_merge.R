@@ -66,11 +66,9 @@ dadaRs <- dada(derepRs, err=errR, multithread=TRUE)
 
 # ── Merge pairs ───────────────────────────────────────────────────────────────
 if (type_run == "illumina_ITS") {
-  mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs,
-                        minOverlap=10, maxMismatch=1, verbose=TRUE)
+  mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs, verbose=TRUE)
 } else {
-  mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs,
-                        minOverlap=10, maxMismatch=1, verbose=FALSE)
+  mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs, verbose=FALSE)
 }
 
 # ── Sequence table + chimera removal ─────────────────────────────────────────
@@ -79,13 +77,13 @@ cat("[denoise_merge] Sequence length distribution:\n")
 print(table(nchar(getSequences(seqtab))))
 
 if (type_run == "illumina_ITS") {
-  seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
+  seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus",
+                                       multithread=TRUE, verbose=TRUE)
 } else {
   seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus",
                                        minFoldParentOverAbundance=1,
                                        multithread=TRUE, verbose=FALSE)
 }
-
 cat(sprintf("[denoise_merge] ASVs retained: %d / %d\n",
             ncol(seqtab.nochim), ncol(seqtab)))
 
@@ -97,9 +95,8 @@ cat(sprintf("[denoise_merge] seqtab.nochim saved: %s\n", seqtab_path))
 # ── Save seqs.fna ─────────────────────────────────────────────────────────────
 seqs    <- getSequences(seqtab.nochim)
 headers <- paste0(">", seqs)
-fasta   <- c(rbind(headers, seqs))
 fna_path <- file.path(out_dir, sprintf("%s.%s.seqs.fna", project, date))
-write(fasta, fna_path)
+write(c(rbind(headers, seqs)), fna_path)
 cat(sprintf("[denoise_merge] seqs.fna saved: %s\n", fna_path))
 
 # ── Save dada stats for track.csv ─────────────────────────────────────────────

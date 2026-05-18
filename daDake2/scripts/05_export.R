@@ -34,7 +34,7 @@ dada_stats    <- readRDS(file.path(rds_dir, "dada_stats.rds"))
 fs_raw <- rownames(filter_stats)
 fs_sn  <- basename(fs_raw)
 if (type_run == "illumina_ITS") {
-  fs_sn <- sub("_L001_R1_001\\.fastq\\.gz$", "", fs_sn)
+  fs_sn <- sub("(_L001_R1_001|_R1_001|_R1)\\.fastq\\.gz$", "", fs_sn)
 } else {
   fs_sn <- sub("(_L001)?_R1(_001)?\\.fastq\\.gz$", "", fs_sn)
 }

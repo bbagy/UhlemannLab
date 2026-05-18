@@ -28,6 +28,7 @@ tax <- assignTaxonomy(
   seqtab.nochim, opt$db,
   taxLevels   = c("Kingdom","Phylum","Class","Order","Family","Genus","Species"),
   minBoot     = 80,
+  tryRC       = TRUE,
   verbose     = FALSE,
   multithread = TRUE
 )
