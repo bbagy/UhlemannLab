@@ -398,32 +398,19 @@ rule qiime_tree:
         TREE_DIR="${{FNA}}_tree"
         mkdir -p "$TREE_DIR"
 
-        # activate qiime2 — try conda run first, fall back to source activate
-        _qiime(){
-            if command -v conda >/dev/null 2>&1; then
-                conda run -n qiime2 qiime "$@"
-            else
-                source "$(conda info --base)/etc/profile.d/conda.sh" 2>/dev/null || \
-                source ~/miniconda3/etc/profile.d/conda.sh 2>/dev/null || \
-                source ~/opt/miniconda3/etc/profile.d/conda.sh 2>/dev/null
-                conda activate qiime2
-                qiime "$@"
-            fi
-        }
-
-        _qiime tools import \
+        conda run -n qiime2 qiime tools import \
             --input-path  "$FNA" \
             --output-path "$TREE_DIR/${{FNA%.fna}}.qza" \
             --type        'FeatureData[Sequence]' >> {log} 2>&1
 
-        _qiime phylogeny align-to-tree-mafft-fasttree \
+        conda run -n qiime2 qiime phylogeny align-to-tree-mafft-fasttree \
             --i-sequences      "$TREE_DIR/${{FNA%.fna}}.qza" \
             --o-alignment      "$TREE_DIR/${{FNA%.fna}}_aligned-rep-seqs.qza" \
             --o-masked-alignment "$TREE_DIR/${{FNA%.fna}}_masked-aligned-rep-seqs.qza" \
             --o-tree           "$TREE_DIR/${{FNA%.fna}}_unrooted-tree.qza" \
             --o-rooted-tree    "$TREE_DIR/${{FNA%.fna}}_rooted-tree.qza" >> {log} 2>&1
 
-        _qiime tools export \
+        conda run -n qiime2 qiime tools export \
             --input-path  "$TREE_DIR/${{FNA%.fna}}_rooted-tree.qza" \
             --output-path "$TREE_DIR/exported-tree" >> {log} 2>&1
         """

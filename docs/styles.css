@@ -592,6 +592,76 @@ p, li {
   background: linear-gradient(120deg, #faf3ff 0%, #eedcfa 100%);
 }
 
+/* daDake2 featured card */
+.pipeline-card.featured.dadake2-featured {
+  border-color: #0d9e8a;
+  background:
+    radial-gradient(circle at 92% 12%, #c8f5ee 0%, transparent 42%),
+    linear-gradient(180deg, #f0fdfb 0%, #e0f7f3 100%);
+}
+
+.pipeline-card.featured.dadake2-featured h3 {
+  color: #0a5f52;
+}
+
+.pipeline-card.featured.dadake2-featured .card-badge.live {
+  border-color: #0d9e8a;
+  color: #0a5f52;
+  background: #d8f5f0;
+}
+
+.dadake2-visual {
+  margin-top: 10px;
+  border-radius: 10px;
+  height: 92px;
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  border: 2px solid #7dd5c9;
+  background: linear-gradient(120deg, #edfaf8 0%, #d4f2ee 100%);
+}
+
+.dadake2-visual svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.pipeline-card > .dadake2-visual {
+  margin-top: auto;
+}
+
+/* daDake2 theme accents (subpage) */
+.theme-dadake2 .badge {
+  border-color: #7dd5c9;
+  color: #0a5f52;
+  background: #e4f7f5;
+}
+
+.theme-dadake2 .status-tested {
+  border-color: #0d9e8a;
+  background: #e0f7f3;
+  color: #0a5f52;
+}
+
+.theme-dadake2 .node {
+  border-color: #7dd5c9;
+  background: #edfaf8;
+  color: #0a6b5e;
+}
+
+.theme-dadake2 .node.dadake2-its-only {
+  border-color: #b0c4c2;
+  background: #f2f8f7;
+  color: #5a7370;
+  opacity: 0.75;
+}
+
+.theme-dadake2 .arrow {
+  color: #2a8a7a;
+}
+
 /* Humann theme accents (subpage) */
 .theme-humann .badge {
   border-color: #f0bd92;

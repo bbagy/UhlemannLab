@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>daDake2</title>
+  <link rel="stylesheet" href="styles.css?v=20260518-1">
+</head>
+<body class="theme-dadake2">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">UhlemannLab</div>
+      <nav class="nav">
+        <a href="./">Home</a>
+        <a href="workstations.html">Current Workstations</a>
+        <a href="longwgs.html">longWGS</a>
+        <a href="shortwgs.html">shortWGS</a>
+        <a href="kbracken.html">KBracken</a>
+        <a href="humann.html">Humann</a>
+        <a href="rnake.html">RNake</a>
+        <a class="active" href="dadake2.html">daDake2</a>
+        <a href="mags.html">MAGs</a>
+        <a href="pfsnake.html">PFsnake</a>
+        <a href="tnseq_ont.html">TnSeq_ONT</a>
+      </nav>
+      <div class="sidebar-foot">
+        <a class="repo-link" href="https://github.com/bbagy/UhlemannLab" target="_blank" rel="noopener noreferrer">Open bbagy GitHub</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <span class="badge">DADA2 / Amplicon</span>
+      <h1>daDake2</h1>
+      <p>DADA2 amplicon pipeline for Illumina 16S (V3–V4, V1–V2) and ITS sequencing.
+         Runs natively with R + qiime2; no Docker required. Each pipeline step writes an
+         RDS checkpoint so interrupted runs resume without repeating learnErrors.</p>
+      <div class="status-banner status-tested">
+        STATUS: AVAILABLE — TESTED IN CORE4 WORKSTATION
+      </div>
+
+      <h2>Supported Types</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr><th>Type flag</th><th>Region</th><th>Primer trim</th><th>Host removal</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>standard_V3V4</code></td><td>16S V3–V4</td><td>trimLeft only</td><td>Yes (NA phylum, Chloroplast, Mito)</td></tr>
+            <tr><td><code>zymo_V1V2</code></td><td>16S V1–V2 (Zymo)</td><td>trimLeft only</td><td>Yes</td></tr>
+            <tr><td><code>illumina_ITS</code></td><td>ITS (Fungi)</td><td>cutadapt</td><td>No</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Pipeline Flow</h2>
+      <div class="flow">
+        <span class="node">Paired FASTQ</span><span class="arrow">→</span>
+        <span class="node dadake2-its-only">[ITS] cutadapt</span><span class="arrow">→</span>
+        <span class="node">filterAndTrim</span><span class="arrow">→</span>
+        <span class="node">learnErrors</span><span class="arrow">→</span>
+        <span class="node">dada + merge</span><span class="arrow">→</span>
+        <span class="node">chimera removal</span><span class="arrow">→</span>
+        <span class="node">assignTaxonomy</span><span class="arrow">→</span>
+        <span class="node">phyloseq + CSV</span><span class="arrow">→</span>
+        <span class="node">qiime2 tree</span>
+      </div>
+      <p style="margin-top:8px;font-size:0.88rem;">Gray node (cutadapt) runs only for <code>illumina_ITS</code>.</p>
+
+      <h2>Checkpoints</h2>
+      <div class="card">
+        <table>
+          <thead><tr><th>Step</th><th>Checkpoint file</th></tr></thead>
+          <tbody>
+            <tr><td>filterAndTrim</td><td><code>2_rds/filter_stats.rds</code></td></tr>
+            <tr><td>learnErrors</td><td><code>2_rds/errF.rds</code> &amp; <code>errR.rds</code></td></tr>
+            <tr><td>dada + merge + chimera</td><td><code>2_rds/seqtab.nochim.{proj}.{date}.rds</code></td></tr>
+            <tr><td>assignTaxonomy</td><td><code>2_rds/tax.{proj}.{date}.rds</code></td></tr>
+            <tr><td>export</td><td><code>2_rds/ps.{proj}.{date}.rds</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Workstation Layout</h2>
+      <div class="card"><pre><code>heekuk_path/
+|-- Go_daDake2.sh          &lt;-- symlink → heekuk_path/daDake2/Go_daDake2.sh
+`-- daDake2/
+    |-- Go_daDake2.sh
+    |-- Go_daDake2.smk
+    `-- scripts/
+        |-- 01_filter_trim.R
+        |-- 02_learn_errors.R
+        |-- 03_denoise_merge.R
+        |-- 04_taxonomy.R
+        `-- 05_export.R</code></pre></div>
+
+      <h2>Deploy</h2>
+      <div class="card"><pre><code>Go_toWorkstation.sh daDake2</code></pre></div>
+
+      <h2>Run</h2>
+      <div class="card"><pre><code># 16S V3V4 — multiple projects
+DB="/media/uhlemann/core4/DB/DADA2/Bacteria/silva_nr99_v138.1_wSpecies_train_set.fa.gz"
+dirs="ProjA,ProjB,ProjC"
+smk="/home/uhlemann/heekuk_path/daDake2"
+
+Go_daDake2.sh -t standard_V3V4 -i $dirs -d $DB -s $smk -c 8 -K</code></pre></div>
+
+      <div class="card"><pre><code># Zymo V1V2
+Go_daDake2.sh -t zymo_V1V2 -i "ProjA,ProjB" -d $DB -s $smk -c 8 -K</code></pre></div>
+
+      <div class="card"><pre><code># ITS
+DB_ITS="/media/uhlemann/core4/DB/DADA2/Fungi/sh_general_release_dynamic_29.11.2022.fasta"
+Go_daDake2.sh -t illumina_ITS -i "ProjA,ProjB" -d $DB_ITS -s $smk -c 8 -K</code></pre></div>
+
+      <div class="card"><pre><code># dry-run
+Go_daDake2.sh -t standard_V3V4 -i "ProjA" -d $DB -s $smk -n</code></pre></div>
+
+      <h2>Options</h2>
+      <div class="card">
+        <table>
+          <thead><tr><th>Flag</th><th>Default</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>-t</code></td><td>—</td><td><code>standard_V3V4</code> | <code>zymo_V1V2</code> | <code>illumina_ITS</code></td></tr>
+            <tr><td><code>-i</code></td><td>—</td><td>Comma-separated project directories (no spaces)</td></tr>
+            <tr><td><code>-d</code></td><td>—</td><td>Taxonomy DB path (SILVA or UNITE .fa.gz)</td></tr>
+            <tr><td><code>-s</code></td><td>script dir</td><td>Directory containing Go_daDake2.smk (use when running via symlink)</td></tr>
+            <tr><td><code>-c</code></td><td>4</td><td>Snakemake cores</td></tr>
+            <tr><td><code>-m</code></td><td>10000</td><td>Min FASTQ size in bytes (smaller → failed.csv)</td></tr>
+            <tr><td><code>-n</code></td><td>off</td><td>Dry-run</td></tr>
+            <tr><td><code>-K</code></td><td>off</td><td>Keep going on sample failure</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Output Layout</h2>
+      <div class="card"><pre><code>{proj}_dada2/
+|-- failed.csv
+|-- {proj}.{date}.qualityProfiles.pdf
+|-- {proj}.{date}.qualityProfiles.filt.pdf
+|-- {proj}.{date}.splotErrors.errF1.pdf
+|-- {proj}.{date}.splotErrors.errF2.pdf
+|-- 1_out/
+|   |-- {proj}.{date}.asvTable.csv      &lt;-- primary output
+|   |-- {proj}.{date}.asv.csv
+|   |-- {proj}.{date}.tax.csv
+|   |-- {proj}.{date}.track.csv
+|   |-- {proj}.{date}.seqs.fna
+|   `-- {proj}.{date}.seqs.fna_tree/
+|       `-- exported-tree/tree.nwk
+|-- 2_rds/
+|   |-- filter_stats.rds  errF.rds  errR.rds  dada_stats.rds
+|   |-- seqtab.nochim.{proj}.{date}.rds
+|   |-- tax.{proj}.{date}.rds
+|   `-- ps.{proj}.{date}.rds
+|-- 3_DADA2_filtered/       (16S)
+|-- 4_DADA2_filtered/       (ITS only)
+|-- 3_path.cut/             (ITS only — cutadapt output)
+|-- 3_map/                  (16S only — empty mapping templates)
+`-- logs/</code></pre></div>
+
+      <h2>Operational Notes</h2>
+      <div class="card">
+        <ul>
+          <li>DATE is fixed at pipeline launch (<code>yymmdd</code>) and baked into all filenames — rerunning on a different day never overwrites prior outputs.</li>
+          <li>Small samples (&lt; <code>-m</code> bytes) are written to <code>failed.csv</code> at DAG construction time before any rules run.</li>
+          <li>Samples with zero reads after filterAndTrim are appended to <code>failed.csv</code> and excluded from downstream steps.</li>
+          <li>Host removal (NA phylum, Chloroplast, Mitochondria) applies to 16S types only.</li>
+          <li><code>addSpecies()</code> is not used; no species DB needed.</li>
+          <li>Mapping template CSVs (<code>3_map/</code>) are generated for 16S types only.</li>
+          <li>qiime2 tree step calls <code>conda run -n qiime2 qiime ...</code> directly.</li>
+          <li>Lock errors are auto-handled by the wrapper (<code>--unlock</code> then retry).</li>
+        </ul>
+      </div>
+
+      <h2>Troubleshooting</h2>
+      <div class="card">
+        <table>
+          <thead><tr><th>Error</th><th>Fix</th></tr></thead>
+          <tbody>
+            <tr><td>Snakefile not found (symlink)</td><td>Add <code>-s /home/uhlemann/heekuk_path/daDake2</code></td></tr>
+            <tr><td>All samples in failed.csv</td><td>Check FASTQ sizes with <code>ls -lh</code>; lower <code>-m</code> if needed</td></tr>
+            <tr><td>learnErrors takes very long</td><td>Expected for large projects (reads up to 1M reads per strand)</td></tr>
+            <tr><td>qiime2 tree fails — conda not found</td><td>Ensure shell sources conda.sh in <code>~/.bashrc</code></td></tr>
+            <tr><td>ITS: many reads lost at cutadapt</td><td>Verify primer sequences; check <code>logs/cutadapt.log</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Download Results</h2>
+      <div class="card"><pre><code>sshpass -p "microbiomecore2@" scp -r \
+  uhlemann@156.145.138.130:/path/to/ProjA_dada2/1_out .</code></pre></div>
+    </main>
+  </div>
+</body>
+</html>
