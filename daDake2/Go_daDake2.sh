@@ -30,6 +30,7 @@ Optional:
   -s SNAKEDIR directory containing Go_daDake2.smk (default: same dir as this script)
   -c CORES    CPU cores (default: 4)
   -m BYTES    min FASTQ size to include (default: 10000)
+  -D          delete filtered FASTQ dirs after successful run
   -n          dry-run
   -K          keep-going on sample failure
   -h          show this help
@@ -45,8 +46,9 @@ CORES=4
 MIN_BYTES=10000
 DRYRUN=0
 KEEP_GOING=0
+DELETE_FILT=0
 
-while getopts "t:i:d:s:c:m:nKh" opt; do
+while getopts "t:i:d:s:c:m:DnKh" opt; do
   case "$opt" in
     t) TYPE="$OPTARG" ;;
     i) INPUT_DIRS="$OPTARG" ;;
@@ -54,6 +56,7 @@ while getopts "t:i:d:s:c:m:nKh" opt; do
     s) SNAKEDIR="$OPTARG" ;;
     c) CORES="$OPTARG" ;;
     m) MIN_BYTES="$OPTARG" ;;
+    D) DELETE_FILT=1 ;;
     n) DRYRUN=1 ;;
     K) KEEP_GOING=1 ;;
     h) usage ;;
@@ -141,6 +144,21 @@ if [[ "$RC" -ne 0 ]] && grep -qiE "lock|LockException" dada2_pipeline.log; then
   "${SNAKE_ARGS[@]}" 2>&1 | tee -a dada2_pipeline.log
   RC=${PIPESTATUS[0]}
   set -e
+fi
+
+# cleanup filtered FASTQs on success
+if [[ "$RC" -eq 0 && "$DELETE_FILT" -eq 1 ]]; then
+  IFS=',' read -ra _PROJS <<< "$INPUT_DIRS"
+  for _proj in "${_PROJS[@]}"; do
+    _proj="${_proj// /}"
+    for _d in "3_DADA2_filtered" "4_DADA2_filtered" "3_path.cut"; do
+      _target="${_proj}_dada2/${_d}"
+      if [[ -d "$_target" ]]; then
+        rm -rf "$_target"
+        echo "[Go_daDake2] Deleted: $_target"
+      fi
+    done
+  done
 fi
 
 exit "$RC"
