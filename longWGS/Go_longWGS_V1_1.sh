@@ -420,8 +420,10 @@ if [ "$DRYRUN" -eq 0 ]; then
       for gfa in "${gfas[@]}"; do
         sample=$(basename "$(dirname "$(dirname "$gfa")")")
         failed_marker="$(dirname "$gfa")/FAILED.txt"
-        gfa_copy="$BANDAGE_DIR/${sample}.consensus_assembly.gfa"
+        bakta_sample_dir="$OUTPUT/7_bakta/$sample"
+        gfa_dest="$bakta_sample_dir/${sample}.consensus_assembly.gfa"
         png="$BANDAGE_DIR/${sample}.consensus_assembly.png"
+        png_dest="$bakta_sample_dir/${sample}.consensus_assembly.png"
         if [ -f "$failed_marker" ]; then
           echo "  Bandage: skip failed sample $sample"
           continue
@@ -430,19 +432,55 @@ if [ "$DRYRUN" -eq 0 ]; then
           echo "  Bandage: skip empty GFA for $sample"
           continue
         fi
-        if [ ! -s "$gfa_copy" ] || [ "$gfa" -nt "$gfa_copy" ]; then
-          cp -f "$gfa" "$gfa_copy"
-          echo "  Bandage: copied GFA -> $gfa_copy"
+        # Copy GFA to bakta directory (7_bakta/{sample}/)
+        if [ -d "$bakta_sample_dir" ]; then
+          if [ ! -s "$gfa_dest" ] || [ "$gfa" -nt "$gfa_dest" ]; then
+            cp -f "$gfa" "$gfa_dest"
+            echo "  Bandage: copied GFA -> $gfa_dest"
+          fi
         fi
-        if [ -s "$png" ]; then
+        # Generate PNG in 8_Bandage_image/
+        if [ ! -s "$png" ]; then
+          echo "  Bandage: $gfa -> $png"
+          Bandage image "$gfa" "$png" || echo "[Go_longWGS][WARN] Bandage failed for $sample"
+        else
           echo "  Bandage: skip existing $png"
-          continue
         fi
-        echo "  Bandage: $gfa -> $png"
-        Bandage image "$gfa" "$png" || echo "[Go_longWGS][WARN] Bandage failed for $sample"
+        # Copy PNG to bakta directory
+        if [ -s "$png" ] && [ -d "$bakta_sample_dir" ]; then
+          if [ ! -s "$png_dest" ] || [ "$png" -nt "$png_dest" ]; then
+            cp -f "$png" "$png_dest"
+            echo "  Bandage: copied PNG -> $png_dest"
+          fi
+        fi
       done
     fi
   fi
+fi
+
+# -----------------------------
+# Copy final assemblies to bakta directories
+# -----------------------------
+if [ "$DRYRUN" -eq 0 ] && [ -d "$OUTPUT/4_medaka" ] && [ -d "$OUTPUT/7_bakta" ]; then
+  echo "[Go_longWGS] Copying final assemblies to bakta directories..."
+  shopt -s nullglob
+  fastas=("$OUTPUT"/4_medaka/*_final_assembly.fasta)
+  shopt -u nullglob
+  for fasta in "${fastas[@]}"; do
+    sample=$(basename "$fasta" _final_assembly.fasta)
+    bakta_sample_dir="$OUTPUT/7_bakta/$sample"
+    if [ ! -d "$bakta_sample_dir" ]; then
+      echo "  FASTA copy: skip $sample (no bakta dir)"
+      continue
+    fi
+    dest="$bakta_sample_dir/${sample}_final_assembly.fasta"
+    if [ ! -s "$dest" ] || [ "$fasta" -nt "$dest" ]; then
+      cp -f "$fasta" "$dest"
+      echo "  FASTA copy: $fasta -> $dest"
+    else
+      echo "  FASTA copy: skip existing $dest"
+    fi
+  done
 fi
 
 exit $rc

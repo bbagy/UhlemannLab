@@ -99,7 +99,7 @@ if (type_run == "illumina_ITS") {
     truncLen   = c(opt$trunclen_f, opt$trunclen_r),
     maxEE      = c(2, 5), truncQ=2, rm.phix=TRUE,
     maxN=0, minLen=50, compress=TRUE, multithread=TRUE,
-    verbose=TRUE, matchIDs=TRUE
+    verbose=TRUE, matchIDs=FALSE
   )
 } else {
   filtFs <- file.path(filt_path, paste0(sample.names, "_R1_filt.fastq.gz"))
@@ -109,7 +109,7 @@ if (type_run == "illumina_ITS") {
     truncLen  = c(opt$trunclen_f, opt$trunclen_r),
     trimLeft  = c(opt$trimleft_f, opt$trimleft_r),
     maxEE     = c(2, 2), truncQ=2, rm.phix=TRUE,
-    compress  = TRUE, multithread=TRUE, verbose=TRUE, matchIDs=TRUE
+    compress  = TRUE, multithread=TRUE, verbose=TRUE, matchIDs=FALSE
   )
 }
 

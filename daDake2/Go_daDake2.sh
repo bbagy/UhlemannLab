@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Go_daDake2.sh — DADA2 amplicon pipeline wrapper
-# Types: standard_V3V4 | zymo_V1V2 | illumina_ITS
+# Types: standard_V3V4_600 | standard_V3V4_250 | standard_V4 | public_V4_notrim | standard_V1V2 | zymo_V1V2 | illumina_ITS
 set -euo pipefail
 
 # Resolve symlinks so SCRIPT_DIR points to the actual .sh location
@@ -22,7 +22,7 @@ usage(){
 Usage: $(basename "$0") -t TYPE -i DIRS -d DB [options]
 
 Required:
-  -t TYPE     standard_V3V4 | zymo_V1V2 | illumina_ITS
+  -t TYPE     standard_V3V4_600 | standard_V3V4_250 | standard_V4 | public_V4_notrim | standard_V1V2 | zymo_V1V2 | illumina_ITS
   -i DIRS     comma-separated project directories (e.g. "ProjA,ProjB")
   -d DB       taxonomy DB path (SILVA or UNITE .fa.gz)
 
@@ -33,6 +33,13 @@ Optional:
   -D          delete filtered FASTQ dirs after successful run
   -n          dry-run
   -K          keep-going on sample failure
+  -A          auto-trunclen via FIGARO (per-project, quality-profile-driven;
+              trimLeft switches to the true primer length, no manual buffer)
+  -a LEN      amplicon length without primers, for -A (default: literature
+              estimate for TYPE; override if your kit's insert length differs)
+  -o LEN      FIGARO minimum overlap in bp, for -A (default: 50 -- generous
+              margin for mergePairs(); FIGARO's own default of 20 leaves
+              near-zero slack and can merge almost nothing on real data)
   -h          show this help
 EOF
   exit 1
@@ -47,8 +54,11 @@ MIN_BYTES=10000
 DRYRUN=0
 KEEP_GOING=0
 DELETE_FILT=0
+AUTO_TRUNCLEN=0
+AMPLICON_LEN=0
+MIN_OVERLAP=0
 
-while getopts "t:i:d:s:c:m:DnKh" opt; do
+while getopts "t:i:d:s:c:m:a:o:DnKAh" opt; do
   case "$opt" in
     t) TYPE="$OPTARG" ;;
     i) INPUT_DIRS="$OPTARG" ;;
@@ -56,9 +66,12 @@ while getopts "t:i:d:s:c:m:DnKh" opt; do
     s) SNAKEDIR="$OPTARG" ;;
     c) CORES="$OPTARG" ;;
     m) MIN_BYTES="$OPTARG" ;;
+    a) AMPLICON_LEN="$OPTARG" ;;
+    o) MIN_OVERLAP="$OPTARG" ;;
     D) DELETE_FILT=1 ;;
     n) DRYRUN=1 ;;
     K) KEEP_GOING=1 ;;
+    A) AUTO_TRUNCLEN=1 ;;
     h) usage ;;
     *) usage ;;
   esac
@@ -69,9 +82,12 @@ done
 [[ -z "$DB" ]]         && { echo "[ERROR] -d DB is required";   usage; }
 
 case "$TYPE" in
-  standard_V3V4|zymo_V1V2|illumina_ITS) ;;
-  *) echo "[ERROR] -t must be: standard_V3V4 | zymo_V1V2 | illumina_ITS"; exit 1 ;;
+  standard_V3V4|standard_V3V4_600|standard_V3V4_250|standard_V4|public_V4_notrim|standard_V1V2|zymo_V1V2|illumina_ITS) ;;
+  *) echo "[ERROR] -t must be: standard_V3V4_600 | standard_V3V4_250 | standard_V4 | public_V4_notrim | standard_V1V2 | zymo_V1V2 | illumina_ITS"; exit 1 ;;
 esac
+
+[[ "$AUTO_TRUNCLEN" -eq 1 && "$TYPE" == "illumina_ITS" ]] && \
+  { echo "[ERROR] -A (FIGARO auto-trunclen) is not supported for illumina_ITS"; exit 1; }
 
 # smk 위치 결정: -s 옵션 > 스크립트와 같은 디렉토리
 if [[ -n "$SNAKEDIR" ]]; then
@@ -114,12 +130,16 @@ sdb:             ""
 date:            "${RUN_DATE}"
 min_fastq_bytes: ${MIN_BYTES}
 scripts_dir:     "${SCRIPTS_DIR}"
+auto_trunclen:   "$([[ "$AUTO_TRUNCLEN" -eq 1 ]] && echo true || echo false)"
+amplicon_len:    ${AMPLICON_LEN}
+min_overlap:     ${MIN_OVERLAP}
 YAML
 
 echo "[Go_daDake2] type=${TYPE}  date=${RUN_DATE}  cores=${CORES}"
 echo "[Go_daDake2] projects: ${INPUT_DIRS}"
 echo "[Go_daDake2] db: ${DB_ABS}"
 echo "[Go_daDake2] smk: ${SMK}"
+[[ "$AUTO_TRUNCLEN" -eq 1 ]] && echo "[Go_daDake2] FIGARO auto-trunclen enabled (amplicon_len=${AMPLICON_LEN:-<type default>})"
 
 SNAKE_ARGS=(
   snakemake
@@ -160,7 +180,7 @@ if [[ "$RC" -eq 0 && "$DELETE_FILT" -eq 1 ]]; then
   IFS=',' read -ra _PROJS <<< "$INPUT_DIRS"
   for _proj in "${_PROJS[@]}"; do
     _proj="${_proj// /}"
-    for _d in "3_DADA2_filtered" "4_DADA2_filtered" "3_path.cut"; do
+    for _d in "3_DADA2_filtered" "4_DADA2_filtered" "3_path.cut" "figaro_input" "figaro_input_fixedlen"; do
       _target="${_proj}_dada2/${_d}"
       if [[ -d "$_target" ]]; then
         rm -rf "$_target"

@@ -49,9 +49,27 @@ cat(sprintf("[learn_errors] %d samples for error learning\n", length(filtFs)))
 
 # ── learnErrors ───────────────────────────────────────────────────────────────
 set.seed(100)
-errF <- suppressWarnings(learnErrors(filtFs, nreads=1000000, multithread=TRUE))
+if (type_run == "standard_V3V4_250") {
+  errF <- suppressWarnings(learnErrors(
+    filtFs, nreads=1000000, randomize=TRUE,
+    errorEstimationFunction=noqualErrfun, multithread=TRUE
+  ))
+} else {
+  errF <- suppressWarnings(learnErrors(
+    filtFs, nreads=1000000, multithread=TRUE
+  ))
+}
 set.seed(100)
-errR <- suppressWarnings(learnErrors(filtRs, nreads=1000000, multithread=TRUE))
+if (type_run == "standard_V3V4_250") {
+  errR <- suppressWarnings(learnErrors(
+    filtRs, nreads=1000000, randomize=TRUE,
+    errorEstimationFunction=noqualErrfun, multithread=TRUE
+  ))
+} else {
+  errR <- suppressWarnings(learnErrors(
+    filtRs, nreads=1000000, multithread=TRUE
+  ))
+}
 
 rds_dir <- file.path(dada2_dir, "2_rds")
 dir.create(rds_dir, recursive=TRUE, showWarnings=FALSE)

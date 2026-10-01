@@ -240,7 +240,10 @@ rule count_htseq:
     params:
         reference=config["gff"],
         feature_type=lambda wildcards: detect_feature_type(config["gff"]),
-        idattr="ID"
+        idattr=lambda wildcards: detect_best_idattr(
+            config["gff"],
+            detect_feature_type(config["gff"])
+        )
     shell:
         '''
         echo "Processing {wildcards.sample} ..."
@@ -292,18 +295,20 @@ import pandas as pd
 import re
 
 count_df = pd.read_csv("{input.count_file}", index_col=0)
-gff = pd.read_csv("{input.annotation_file}", sep="\t", comment="#", header=None)
+gff_all = pd.read_csv("{input.annotation_file}", sep="\t", comment="#", header=None)
 
-if (gff[2] == "CDS").sum() > 0:
-    gff = gff[gff[2] == "CDS"].copy()
+if (gff_all[2] == "CDS").sum() > 0:
+    gff = gff_all[gff_all[2] == "CDS"].copy()
 else:
-    gff = gff[gff[2] == "gene"].copy()
+    gff = gff_all[gff_all[2] == "gene"].copy()
 
-gff["ID"] = gff[8].str.extract(r"(?:^|;)ID=([^;]+)")
-gff["locus_tag"] = gff[8].str.extract(r"(?:^|;)locus_tag=([^;]+)")
-gff["gene"] = gff[8].str.extract(r"(?:^|;)gene=([^;]+)")
-gff["Name"] = gff[8].str.extract(r"(?:^|;)Name=([^;]+)")
-gff["product"] = gff[8].str.extract(r"(?:^|;)product=([^;]+)")
+for df in (gff_all, gff):
+    df["ID"] = df[8].str.extract(r"(?:^|;)ID=([^;]+)")
+    df["Parent"] = df[8].str.extract(r"(?:^|;)Parent=([^;]+)")
+    df["locus_tag"] = df[8].str.extract(r"(?:^|;)locus_tag=([^;]+)")
+    df["gene"] = df[8].str.extract(r"(?:^|;)gene=([^;]+)")
+    df["Name"] = df[8].str.extract(r"(?:^|;)Name=([^;]+)")
+    df["product"] = df[8].str.extract(r"(?:^|;)product=([^;]+)")
 
 ids = count_df.index.astype(str)
 
@@ -322,24 +327,44 @@ for c in candidates:
 
 if best is None:
     count_df.reset_index(inplace=True)
-    count_df.columns.values[0] = "feature_id"
-    count_df.insert(1, "symbol", count_df["feature_id"])
+    count_df.columns.values[0] = "Name"
+    count_df.insert(1, "symbol", count_df["Name"])
     count_df.to_csv("{output.mapped_file}", index=False)
     raise SystemExit
 
 gff = gff.dropna(subset=[best])
+parent_locus = (
+    gff_all.dropna(subset=["ID", "locus_tag"])
+    .drop_duplicates(subset=["ID"], keep="first")
+    .set_index("ID")["locus_tag"]
+)
+gff["parent_locus_tag"] = gff["Parent"].map(parent_locus)
+gff["feature_locus_tag"] = (
+    gff["locus_tag"]
+    .fillna(gff["parent_locus_tag"])
+)
+gff["feature_name"] = (
+    gff["feature_locus_tag"]
+    .fillna(gff["ID"])
+    .fillna(gff[best])
+)
 gff["symbol"] = gff["gene"].fillna(gff["Name"]).fillna(gff["product"]).fillna(gff[best])
 
-mapping = gff[[best, "symbol"]].drop_duplicates()
+mapping = gff[[best, "feature_name", "symbol"]].drop_duplicates()
 mapping = mapping.drop_duplicates(subset=[best], keep="first")
 
 count_df.reset_index(inplace=True)
-count_df.columns.values[0] = best
-count_df["symbol"] = count_df[best].map(mapping.set_index(best)["symbol"])
-count_df["symbol"] = count_df["symbol"].fillna(count_df[best])
+count_df.columns.values[0] = "feature_id"
+mapping = mapping.set_index(best)
+count_df["Name"] = count_df["feature_id"].map(mapping["feature_name"])
+count_df["Name"] = count_df["Name"].fillna(count_df["feature_id"])
+count_df["symbol"] = count_df["feature_id"].map(mapping["symbol"])
+count_df["symbol"] = count_df["symbol"].fillna(count_df["Name"])
 
 cols = count_df.columns.tolist()
-rearranged = [cols[0], "symbol"] + [c for c in cols[1:] if c != "symbol"]
+rearranged = ["Name", "symbol"] + [
+    c for c in cols if c not in ("feature_id", "Name", "symbol")
+]
 count_df = count_df[rearranged]
 
 count_df.to_csv("{output.mapped_file}", index=False)

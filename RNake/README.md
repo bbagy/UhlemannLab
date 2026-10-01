@@ -147,7 +147,7 @@ Prefilter artifacts (sibling of input FASTQ dir):
 
 Key file:
 
-- `merged_counts_with_gene_names.csv` (final per-gene count matrix with gene names from the GFF)
+- `merged_counts_with_gene_names.csv` (final per-gene count matrix; `Name` is the `locus_tag` from the GFF when available, otherwise the feature ID, and `symbol` is the gene/product label)
 
 ## Operational Notes
 

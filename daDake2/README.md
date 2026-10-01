@@ -82,6 +82,23 @@ Go_daDake2.sh \
 | `-D` | off | Delete filtered FASTQ dirs after a successful run |
 | `-n` | off | Dry-run (`--dry-run`) |
 | `-K` | off | Keep going (`--keep-going`) |
+| `-A` | off | Auto-trunclen via FIGARO (per-project, quality-profile-driven; not supported for `illumina_ITS`) |
+| `-a` | type default | Amplicon length without primers, used with `-A` (override if your kit's insert length differs from the literature estimate) |
+
+### FIGARO auto-trunclen (`-A`)
+
+The fixed `trimLeft`/`truncLen` values in the table below are good defaults, but they assume a specific quality-decay curve. A given sequencing run's actual quality can decay earlier or later than that assumption — e.g. a Zymo-prepped batch behaving worse than a standard-prep batch from the same run, or any run just sequencing worse than usual. `-A` replaces the fixed `truncLen` with a value computed per project from that project's own raw quality profile via [FIGARO](https://github.com/Zymo-Research/figaro) (Zymo Research), which searches for the truncation lengths that maximize expected read retention for the given amplicon length.
+
+- `trimLeft` switches to the *true* primer length (no manual early-cycle buffer) — FIGARO already optimizes against the real quality curve, so the buffer hack is unnecessary in this path.
+- FIGARO itself is installed automatically on first use: cloned into `.figaro_src/` next to the Snakefile, with its own `figaro_env` conda environment (python + numpy/scipy/matplotlib). No manual setup required.
+- Runs per project directory, so mixed-quality batches in a single `-i "ProjA,ProjB"` invocation each get their own optimized `truncLen`.
+- Output: `{proj}_dada2/figaro/trimParameters.json` (FIGARO's full ranked candidate list, top entry used).
+- **Merging batches processed with different `-A` truncLen values later**: keep the same `-a` (amplicon length) across those batches so FIGARO targets the same final merged length in each — otherwise `mergeSequenceTables()` won't collapse the same ASV across batches (see FIGARO section above for full trimLeft math).
+
+```bash
+Go_daDake2.sh -t standard_V3V4 -i "ProjA,ProjB" -A \
+  -d /path/to/silva_nr99_v138.1_wSpecies_train_set.fa.gz -c 8 -K
+```
 
 ## Type-specific Parameters
 
