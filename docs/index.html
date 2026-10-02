@@ -12,6 +12,7 @@
       <div class="brand">UhlemannLab</div>
       <nav class="nav">
         <a class="active" href="./">Home</a>
+        <a href="containers.html">Docker &amp; Apptainer</a>
         <a href="workstations.html">Current Workstations</a>
         <a href="longwgs.html">longWGS</a>
         <a href="shortwgs.html">shortWGS</a>
@@ -36,9 +37,19 @@
       <div class="card">
         <h2>Design Goal</h2>
         <p>
-          All pipelines are containerized and designed for reproducible execution:
-          fixed entry scripts, mounted host data paths, and predictable output folders.
+          Workflows use fixed entry scripts, explicit input paths, and predictable output folders.
+          Containerized workflows share the same analysis logic on workstations and HPC.
         </p>
+      </div>
+
+      <h2>Shared Setup</h2>
+      <div class="cards-grid">
+        <a class="pipeline-card featured card-link" href="containers.html" aria-label="Open Docker and Apptainer guide">
+          <span class="card-badge">Workstation / HPC</span>
+          <h3>Docker &amp; Apptainer</h3>
+          <p>Choose your runtime, export a Docker image, and move it to HPC as an Apptainer SIF.</p>
+          <p>Open the setup and transfer guide →</p>
+        </a>
       </div>
 
       <h2>Pipeline Summary</h2>
@@ -255,7 +266,7 @@
       <div class="card">
         <h2>Reproducibility Notes</h2>
         <ul>
-          <li>Docker is the default runtime for all wrappers.</li>
+          <li>Docker is the default for container launchers; select Apptainer explicitly for HPC.</li>
           <li>Input and database paths are mounted from host paths.</li>
           <li>Each wrapper supports dry-run mode for plan validation.</li>
           <li>Progress and lock-retry behavior are integrated in wrappers.</li>

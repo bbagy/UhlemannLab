@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Docker &amp; Apptainer — UhlemannLab</title>
+  <link rel="stylesheet" href="styles.css?v=20260305-13">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">UhlemannLab</div>
+      <nav class="nav">
+        <a href="./">Home</a>
+        <a class="active" href="containers.html">Docker &amp; Apptainer</a>
+        <a href="workstations.html">Current Workstations</a>
+        <a href="longwgs.html">longWGS</a>
+        <a href="shortwgs.html">shortWGS</a>
+        <a href="kbracken.html">KBracken</a>
+        <a href="humann.html">Humann</a>
+        <a href="mags.html">MAGs</a>
+        <a href="pfsnake.html">PFsnake</a>
+        <a href="rnake.html">RNake</a>
+        <a href="dadake2.html">daDake2</a>
+        <a href="tnseq_ont.html">TnSeq_ONT</a>
+      </nav>
+      <div class="sidebar-foot">
+        <a class="repo-link" href="https://github.com/bbagy/UhlemannLab" target="_blank" rel="noopener noreferrer">Open bbagy GitHub</a>
+      </div>
+    </aside>
+    <main class="main">
+      <span class="badge">Workstation / HPC</span>
+      <h1>Docker &amp; Apptainer</h1>
+      <p>Keep Docker on the workstation. Run the same container software with Apptainer on HPC.</p>
+
+      <h2>Choose your runtime</h2>
+      <div class="card">
+        <table>
+          <thead><tr><th>Where</th><th>Runtime</th><th>Image</th></tr></thead>
+          <tbody>
+            <tr><td>Workstation</td><td>Docker (default)</td><td>Image in the Docker daemon</td></tr>
+            <tr><td>HPC</td><td>Apptainer</td><td>A prepared <code>.sif</code> file</td></tr>
+          </tbody>
+        </table>
+        <p>The nine container launchers accept <code>--container docker|apptainer</code>.
+        Existing commands keep using Docker; there is no automatic runtime switching.
+        The Snakefile and analysis options stay the same.</p>
+      </div>
+<div class="card"><pre><code># Existing workstation command: Docker remains the default.
+bash shortWGS/Go_shortWGS.sh [existing options]
+
+# Explicit workstation selection.
+bash shortWGS/Go_shortWGS.sh --container docker [existing options]
+
+# HPC: select an existing SIF file.
+bash shortWGS/Go_shortWGS.sh --container apptainer \
+  --container-image &quot;$HOME/containers/shortwgs.sif&quot; [existing options]</code></pre></div>
+      <p>Replace <code>[existing options]</code> with the pipeline's required input and database options.
+      <code>--container-image</code> selects a Docker image or SIF file. Existing <code>-m</code>
+      image options also work; longWGS uses <code>--container-image</code> because it has no image <code>-m</code> option.</p>
+      <p>This applies to longWGS, shortWGS, RNake, PFsnake, KBracken, Humann, and all three MAGs stages.
+      daDake2 and merge/rename utilities keep their host execution. TnSeq_ONT has a Python entry point;
+      see its <a href="https://github.com/bbagy/UhlemannLab/blob/main/TnSeq_ONT/README.md#apptainer-on-hpc">direct Apptainer example</a>.</p>
+
+      <h2>Move an existing Docker image to HPC</h2>
+      <div class="flow" aria-label="Docker to HPC image transfer">
+        <span class="node">Docker image</span><span class="arrow">→</span>
+        <span class="node">Export TAR</span><span class="arrow">→</span>
+        <span class="node">Transfer to HPC</span><span class="arrow">→</span>
+        <span class="node">Build SIF</span><span class="arrow">→</span>
+        <span class="node">Run Apptainer</span>
+      </div>
+      <p>The steps below reuse your existing workstation image. No separate Apptainer package installation recipe is needed.</p>
+
+      <h2 id="locate">1. Locate the image — on the workstation</h2>
+<div class="card"><pre><code>docker image ls
+docker context show
+docker info --format &#x27;{{.DockerRootDir}}&#x27;</code></pre></div>
+      <p>Run these commands on the workstation where the image was built. Select its REPOSITORY and TAG.
+      DockerRootDir is the active daemon's internal storage directory, commonly <code>/var/lib/docker</code>
+      on Linux or a directory inside the Docker Desktop VM. A remote context points to the remote daemon.
+      Export an image with <code>docker save</code> instead of copying internal storage files.</p>
+      <div class="card">
+        <table>
+          <thead><tr><th>Pipeline</th><th>Default image</th></tr></thead>
+          <tbody>
+            <tr><td>shortWGS</td><td><code>shortwgs</code> (implicit latest)</td></tr>
+            <tr><td>longWGS</td><td><code>longwgs</code> (implicit latest)</td></tr>
+            <tr><td>RNake</td><td><code>rnake:1.0</code></td></tr>
+            <tr><td>PFsnake</td><td><code>pf-snake:1.0</code></td></tr>
+            <tr><td>KBracken</td><td><code>kbracken:1.0</code></td></tr>
+            <tr><td>Humann</td><td><code>humann:1.0</code></td></tr>
+            <tr><td>MAGs QC / Assembly / Annotation</td><td><code>mags-qc:1.0</code> / <code>mags-assembly:1.0</code> / <code>mags-annotation:1.0</code></td></tr>
+            <tr><td>TnSeq_ONT</td><td><code>flank-pipeline:1.0</code> (README example)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Check the actual image list before exporting. The image CPU architecture must match the HPC.</p>
+
+      <h2 id="export">2. Export — on the workstation</h2>
+      <p>From the repository root:</p>
+<div class="card"><pre><code>bash common/Go_container_image.sh export shortwgs \
+  container-images/shortwgs.docker.tar</code></pre></div>
+      <p>This creates the archive and an <code>.image.txt</code> file with the source image ID,
+      OS/architecture, and tags. Existing output files are not overwritten. For another pipeline,
+      change the image name and output filename.</p>
+      <details><summary>Equivalent manual commands</summary>
+<div class="card"><pre><code>mkdir -p container-images
+docker save --output container-images/shortwgs.docker.tar shortwgs</code></pre></div>
+      </details>
+      <p>Use <code>docker save</code>; <code>docker export</code> exports a container filesystem rather than the image configuration.</p>
+
+      <h2 id="transfer">3. Transfer — from the workstation to HPC</h2>
+      <p>Replace <code>USER@HPC_HOST</code> with your login or institution-recommended transfer host.</p>
+<div class="card"><pre><code>ssh USER@HPC_HOST &#x27;mkdir -p ~/containers&#x27;
+rsync -avP container-images/shortwgs.docker.tar \
+  container-images/shortwgs.docker.tar.image.txt \
+  USER@HPC_HOST:~/containers/</code></pre></div>
+      <p><code>rsync -avP</code> shows progress and retains partial files for interrupted transfers.
+      Prepare the code on HPC too:</p>
+<div class="card"><pre><code># On HPC: first-time checkout.
+git clone https://github.com/bbagy/UhlemannLab.git
+cd UhlemannLab
+
+# For an existing checkout, check local changes before updating.
+# git pull --ff-only</code></pre></div>
+
+      <h2 id="build">4. Convert to SIF — on HPC</h2>
+      <p>Load the site-specific Apptainer module if needed. Convert on a node or within an allocation
+      where your cluster permits builds, with enough temporary and output storage.</p>
+<div class="card"><pre><code>module load apptainer  # Omit if already available; module names vary by site.
+cd ~/UhlemannLab
+bash common/Go_container_image.sh build \
+  &quot;$HOME/containers/shortwgs.docker.tar&quot; \
+  &quot;$HOME/containers/shortwgs.sif&quot;</code></pre></div>
+      <details><summary>Equivalent manual command</summary>
+<div class="card"><pre><code>apptainer build &quot;$HOME/containers/shortwgs.sif&quot; \
+  &quot;docker-archive:$HOME/containers/shortwgs.docker.tar&quot;</code></pre></div>
+      </details>
+      <p>Use <code>docker-archive:</code> followed by the file path. Conversion from the archive
+      does not require a Docker daemon or registry download on HPC.
+      If HPC builds are not permitted, convert on another Linux machine with Apptainer and transfer the SIF instead.</p>
+
+      <h2 id="run">5. Check the tools and run — on HPC</h2>
+<div class="card"><pre><code>apptainer exec --cleanenv &quot;$HOME/containers/shortwgs.sif&quot; snakemake --version
+apptainer exec --cleanenv &quot;$HOME/containers/shortwgs.sif&quot; fastp --version
+
+# Replace paths with real HPC paths. Start with a dry-run.
+bash ~/UhlemannLab/shortWGS/Go_shortWGS.sh \
+  --container apptainer \
+  --container-image &quot;$HOME/containers/shortwgs.sif&quot; \
+  -i /shared/fastq -o shortwgs_out \
+  -d /shared/db/wgs -k /shared/db/kraken2 -r /shared/GoWGS \
+  -c 8 -n</code></pre></div>
+      <p>All input paths must exist on HPC. FASTQ files, external databases, and GoWGS are separate
+      from the image and must be prepared in HPC storage. After the dry-run passes, remove <code>-n</code>
+      and run within your allocation, matching the core count to the assigned resources.</p>
+      <p>Runtime selection does not automatically distribute rules across Slurm nodes.
+      Rule-level scheduling needs a separate Snakemake executor/profile configuration.</p>
+
+      <h2>Keep the image and code versions together</h2>
+      <div class="card">
+        <ul>
+          <li>Use versioned SIF filenames, such as <code>shortwgs_v1.sif</code>, and retain the source <code>.image.txt</code>.</li>
+          <li>Record the Git commit, Docker image ID, and SIF checksum (<code>sha256sum shortwgs_v1.sif</code>) in the analysis record.</li>
+          <li>Git stores the Dockerfiles and scripts. Archives, SIF files, and image metadata are stored separately; <code>container-images/</code> is ignored.</li>
+          <li>Deploy <code>common/container.sh</code> along with the launchers. Cloning the repository includes it automatically.</li>
+        </ul>
+        <p>These instructions and launch options are available. Images still need to be created and validated on your target HPC.</p>
+      </div>
+      <p><a href="https://github.com/bbagy/UhlemannLab/blob/main/common/README.md">Repository image guide</a> ·
+      <a href="https://github.com/bbagy/UhlemannLab/blob/main/common/Go_container_image.sh">Export/build helper</a> ·
+      <a href="https://apptainer.org/docs/user/main/docker_and_oci.html#containers-in-docker-archive-files">Official Apptainer conversion documentation</a></p>
+    </main>
+  </div>
+</body>
+</html>
