@@ -100,3 +100,19 @@ Important per-sample files:
 ## Maintainer
 
 Heekuk Park
+
+## Apptainer on HPC
+
+Use a SIF converted from the same Docker image. This pipeline has a Python
+entry point rather than a shell launcher. Keep the Python options unchanged:
+
+```bash
+apptainer exec --cleanenv --no-home \
+  --bind /path/to/TnSeq_ONT:/pipeline \
+  --bind /path/to/data:/data \
+  --pwd /pipeline /shared/containers/flank-pipeline.sif \
+  python Go_search_tnseq_flank.py \
+    -i /data/fastqs -o /data/output_files \
+    --anchor TCGTCGGCAGCGTCAGATGTGTATAAGAGACAGCGGGGACTTATCAGCCAACCTGTTAG \
+    --flank_len 1000 --threads 8 --cluster_id 0.95
+```

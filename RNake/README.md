@@ -191,3 +191,10 @@ Use a custom image tag:
 ## Maintainer
 
 Heekuk Park
+
+## Container runtime
+
+Shell launchers accept `--container docker|apptainer` (default: `docker`).
+For HPC use `--container apptainer --container-image /path/to/pipeline.sif`
+with the existing analysis options. See [shared runtime instructions](../README.md#docker--apptainer-selection)
+for SIF preparation and deployment of `common/container.sh`.

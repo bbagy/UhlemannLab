@@ -1,0 +1,5 @@
+# Container images are transferred separately from source code.
+/container-images/
+*.docker.tar
+*.docker.tar.image.txt
+*.sif

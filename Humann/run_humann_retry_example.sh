@@ -29,7 +29,16 @@
 # =============================================================================
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+# Resolve the launcher path so invocation through a symlink also finds common/.
+_CONTAINER_SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")"
+_CONTAINER_DIR="$(cd "$(dirname "$_CONTAINER_SELF")" && pwd -P)"
+_CONTAINER_HELPER="$_CONTAINER_DIR/../common/container.sh"
+[ -f "$_CONTAINER_HELPER" ] || _CONTAINER_HELPER="$_CONTAINER_DIR/common/container.sh"
+source "$_CONTAINER_HELPER"
+set -- ${CONTAINER_ARGS[@]+"${CONTAINER_ARGS[@]}"}
+
+
+SCRIPT_DIR="$_CONTAINER_DIR"
 cd /media/uhlemann/core5/01_MG/20260409_DEAPIM30
 
 inputDIR="DEAPIM30_QC/test"
@@ -47,7 +56,7 @@ image="humann:1.0"
 # ---------------------------------------------------------------------------
 
 cat <<'EOF'
-Go_Humann.sh \
+Go_Humann.sh --container "$CONTAINER_RUNTIME" ${CONTAINER_IMAGE:+--container-image "$CONTAINER_IMAGE"} \
    -i DEAPIM30_QC/test \
    -o humann3_out_test \
    -n /media/uhlemann/core4/DB/humann_db/humann3/chocophlan \
@@ -62,7 +71,7 @@ EOF
 
 # 실제 실행이 필요하면 아래 블록을 사용
 #
-# Go_Humann.sh \
+# Go_Humann.sh --container "$CONTAINER_RUNTIME" ${CONTAINER_IMAGE:+--container-image "$CONTAINER_IMAGE"} \
 #   -i "$inputDIR" \
 #   -o "$outDIR" \
 #   -n "$chocophlanDB" \
@@ -88,10 +97,10 @@ zcat \
   > "humann_direct_debug/${sample}.fastq"
 
 echo "[check] image=$image"
-docker run --rm "$image" which humann
-docker run --rm "$image" python -c "import humann; print(humann.__file__)"
+container_run --rm "$image" which humann
+container_run --rm "$image" python -c "import humann; print(humann.__file__)"
 
-docker run --rm \
+container_run --rm \
   -u "$(id -u):$(id -g)" \
   -v "$(pwd)":/work \
   -v "$chocophlanDB":/db/chocophlan:ro \
@@ -111,12 +120,12 @@ docker run --rm \
 tail -n 100 "humann_direct_debug/${sample}.direct.log" || true
 
 
-docker run --rm \
+container_run --rm \
      -u "$(id -u):$(id -g)" \
      -v /media/uhlemann/core4/DB/humann_db/metaphlan4_vJun23:/db \
      humann:1.0 \
      metaphlan --install --index mpa_vJun23_CHOCOPhlAnSGB_202307 --bowtie2db /db
-  docker run --rm \
+  container_run --rm \
     -u "$(id -u):$(id -g)" \
     -v /media/uhlemann/core4/DB/humann_db/metaphlan4_vJun23:/db \
     humann:1.0 \
@@ -124,7 +133,7 @@ docker run --rm \
 
 
 
- docker run --rm \
+ container_run --rm \
     -u "$(id -u):$(id -g)" \
     -v /media/uhlemann/core4/DB/humann_db/metaphlan4_vJun23:/db \
     humann:1.0 \
@@ -146,7 +155,7 @@ docker run --rm \
 # 1. Check image toolchain versions inside the exact container.
 #
 cat <<'EOF'
-docker run --rm humann:1.0 \
+container_run --rm humann:1.0 \
   bash -lc 'export PATH=/opt/conda/envs/humann/bin:$PATH; \
     echo "[humann]"; humann --version; \
     echo "[bowtie2-build]"; bowtie2-build --version | head -n 1; \
@@ -157,7 +166,7 @@ EOF
 # 2. Confirm mounted DB path, free space, inode usage, and write test.
 #
 cat <<'EOF'
-docker run --rm \
+container_run --rm \
   -u "$(id -u):$(id -g)" \
   -v /media/uhlemann/core4/DB/humann_db/metaphlan4_vJun23:/db \
   humann:1.0 \
@@ -172,7 +181,7 @@ EOF
 #    stdout/stderr in a log file for the exact failure point.
 #
 cat <<'EOF'
-docker run --rm \
+container_run --rm \
   -u "$(id -u):$(id -g)" \
   -v /media/uhlemann/core4/DB/humann_db/metaphlan4_vJun23:/db \
   humann:1.0 \
@@ -190,14 +199,14 @@ EOF
 #    contains the matching .pkl and .bt2/.bt2l files for the selected index.
 
 
-  docker run --rm humann:1.0 \
+  container_run --rm humann:1.0 \
     bash -lc 'export PATH=/opt/conda/envs/humann/bin:$PATH;bowtie2-build --version | head -n 1'
 
  grep -n "bowtie2" Dockerfile
-  docker run --rm humann:1.0 bash -lc 'export PATH=/opt/conda/envs/humann/bin:$PATH; conda list bowtie2 || micromamba list -n humann bowtie2'
+  container_run --rm humann:1.0 bash -lc 'export PATH=/opt/conda/envs/humann/bin:$PATH; conda list bowtie2 || micromamba list -n humann bowtie2'
 
 
-    docker run --rm humann:1.0 \
+    container_run --rm humann:1.0 \
     bash -lc 'export PATH=/opt/conda/envs/humann/bin:$PATH; \
       echo "[which]"; which bowtie2-build; \
       echo "[ls]"; ls -l "$(which bowtie2-build)"; \
@@ -206,18 +215,18 @@ EOF
 
 
 
-  docker run --rm humann:1.0 \
+  container_run --rm humann:1.0 \
     bash -lc 'export PATH=/opt/conda/envs/humann/bin:$PATH; \
       echo "[which]"; which bowtie2-build; \
       echo "[type]"; type -a bowtie2-build; \
       echo "[ls]"; ls -l "$(which bowtie2-build)"; \
       echo "[find]"; find / -name bowtie2-build 2>/dev/null'
 
-  docker run --rm humann:1.0 \
+  container_run --rm humann:1.0 \
     bash -lc '/opt/conda/envs/humann/bin/bowtie2-build --version | head -n 3'
 
 
-  docker run --rm humann:1.0 \
+  container_run --rm humann:1.0 \
     bash -lc 'export PATH=/opt/conda/envs/humann/bin:$PATH;export LD_LIBRARY_PATH=/opt/conda/envs/humann/lib:$LD_LIBRARY_PATH; bowtie2-build --version | head -n 3'
 
 
@@ -245,7 +254,7 @@ EOF
 #
 # Official MetaPhlAn install retry:
 cat <<'EOF'
-docker run --rm \
+container_run --rm \
   -u "$(id -u):$(id -g)" \
   -v /media/uhlemann/core4/DB/humann_db/metaphlan4_vJun23:/db \
   humann:1.0 \
@@ -258,7 +267,7 @@ EOF
 #
 # Post-install check:
 cat <<'EOF'
-docker run --rm \
+container_run --rm \
   -u "$(id -u):$(id -g)" \
   -v /media/uhlemann/core4/DB/humann_db/metaphlan4_vJun23:/db \
   humann:1.0 \
@@ -275,6 +284,7 @@ EOF
 #   - diamond 임시파일 생성 실패 원인 조사 중
 #
 # 1. 오래된 Docker 이미지 삭제 (OrthoVenn3 + islandpath, ~11GB)
+if [ "$CONTAINER_RUNTIME" = docker ]; then
 docker rmi \
   lufang0411/orthovenn3-api:latest \
   leeoluo/orthovenn3-front:latest \
@@ -284,6 +294,7 @@ docker rmi \
 
 # 2. 멈춘 컨테이너 정리
 docker container prune -f
+fi
 
 # 3. root 파티션 용량 범인 찾기
 df -h /

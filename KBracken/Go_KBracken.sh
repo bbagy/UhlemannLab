@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Resolve the launcher path so invocation through a symlink also finds common/.
+_CONTAINER_SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")"
+_CONTAINER_DIR="$(cd "$(dirname "$_CONTAINER_SELF")" && pwd -P)"
+_CONTAINER_HELPER="$_CONTAINER_DIR/../common/container.sh"
+[ -f "$_CONTAINER_HELPER" ] || _CONTAINER_HELPER="$_CONTAINER_DIR/common/container.sh"
+source "$_CONTAINER_HELPER"
+set -- ${CONTAINER_ARGS[@]+"${CONTAINER_ARGS[@]}"}
+
+
 usage(){
-  echo "Usage: $0 -i FASTQ_DIR -o OUTPUT_DIR -d KRAKEN2_DB [-s SNAKEDIR] [-c CORES] [-j JOBS] [-m IMAGE] [-n] [-K] [--kraken-only]"
+  echo "Usage: $0 [--container docker|apptainer] [--container-image IMAGE_OR_SIF] -i FASTQ_DIR -o OUTPUT_DIR -d KRAKEN2_DB [-s SNAKEDIR] [-c CORES] [-j JOBS] [-m IMAGE] [-n] [-K] [--kraken-only]"
   exit 1
 }
 
@@ -86,7 +95,7 @@ done
 FASTQ_DIR_ABS="$(abs_path "$FASTQ_DIR")" || { echo "[KBracken] FASTQ_DIR not found: $FASTQ_DIR"; exit 1; }
 DB_ABS="$(abs_path "$DB")" || { echo "[KBracken] DB not found: $DB"; exit 1; }
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+SCRIPT_DIR="$_CONTAINER_DIR"
 PIPELINE_DIR="$SCRIPT_DIR"
 if [ -n "$SNAKEDIR" ]; then
   [ -d "$SNAKEDIR" ] || { echo "[KBracken] SNAKEDIR not found: $SNAKEDIR"; exit 1; }
@@ -102,17 +111,12 @@ if [ ! -f "$PIPELINE_DIR/$SNAKEFILE_NAME" ]; then
   exit 1
 fi
 
-if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
-  echo "[KBracken][FATAL] Docker image not found locally: $IMAGE"
-  echo "[KBracken] Build example:"
-  echo "  cd \"$SCRIPT_DIR/docker/KBracken\" && docker build --network=host -t kbracken:1.0 ."
-  exit 1
-fi
+container_require_image "$IMAGE" || exit 1
 
 WORKDIR="$(pwd)"
 
 run(){
-  docker run --rm \
+  container_run --rm \
     -u "$(id -u):$(id -g)" \
     -v "$WORKDIR":/work \
     -v "$PIPELINE_DIR":/pipeline:ro \

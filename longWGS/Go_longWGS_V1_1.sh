@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
-usage(){ echo "Usage: $0 -i INPUT -o OUTPUT -d DB [-s SNAKEDIR] [-p 0|1] [-M strict|permissive] [-n] [-K]"; exit 1; }
+
+# Resolve the launcher path so invocation through a symlink also finds common/.
+_CONTAINER_SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")"
+_CONTAINER_DIR="$(cd "$(dirname "$_CONTAINER_SELF")" && pwd -P)"
+_CONTAINER_HELPER="$_CONTAINER_DIR/../common/container.sh"
+[ -f "$_CONTAINER_HELPER" ] || _CONTAINER_HELPER="$_CONTAINER_DIR/common/container.sh"
+source "$_CONTAINER_HELPER"
+set -- ${CONTAINER_ARGS[@]+"${CONTAINER_ARGS[@]}"}
+
+usage(){ echo "Usage: $0 [--container docker|apptainer] [--container-image IMAGE_OR_SIF] -i INPUT -o OUTPUT -d DB [-s SNAKEDIR] [-p 0|1] [-M strict|permissive] [-n] [-K]"; exit 1; }
 
 INPUT=""; OUTPUT=""; DB=""; SNAKEDIR=""; PORECHOP=0
 MAP_FILE=""
@@ -161,7 +170,7 @@ preflight_check_fastqs() {
 preflight_check_fastqs "$INPUT"
 
 WORKDIR="$(pwd)"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+SCRIPT_DIR="$_CONTAINER_DIR"
 PIPELINE_DIR="$SCRIPT_DIR"
 if [ -n "$SNAKEDIR" ]; then
   if [ ! -d "$SNAKEDIR" ]; then
@@ -356,7 +365,7 @@ if [ "$KEEP_GOING" -eq 1 ]; then
   CMD="$CMD --keep-going"
 fi
 
-run(){ docker run --rm \
+run(){ container_run --rm \
   --network host \
   -u "$(id -u):$(id -g)" \
   -v "$WORKDIR":/work \

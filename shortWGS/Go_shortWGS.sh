@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Resolve the launcher path so invocation through a symlink also finds common/.
+_CONTAINER_SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")"
+_CONTAINER_DIR="$(cd "$(dirname "$_CONTAINER_SELF")" && pwd -P)"
+_CONTAINER_HELPER="$_CONTAINER_DIR/../common/container.sh"
+[ -f "$_CONTAINER_HELPER" ] || _CONTAINER_HELPER="$_CONTAINER_DIR/common/container.sh"
+source "$_CONTAINER_HELPER"
+set -- ${CONTAINER_ARGS[@]+"${CONTAINER_ARGS[@]}"}
+
+
 usage(){
-  echo "Usage: $0 -i FASTQ_DIR -o OUTPUT_DIR -d WGS_DB_DIR -k KRAKEN_DB_DIR -r GOWGS_DIR [-s SNAKEDIR] [-c CORES] [-m IMAGE] [-n] [-K] [-P 0|1]"
+  echo "Usage: $0 [--container docker|apptainer] [--container-image IMAGE_OR_SIF] -i FASTQ_DIR -o OUTPUT_DIR -d WGS_DB_DIR -k KRAKEN_DB_DIR -r GOWGS_DIR [-s SNAKEDIR] [-c CORES] [-m IMAGE] [-n] [-K] [-P 0|1]"
   exit 1
 }
 
@@ -271,7 +280,7 @@ stop_progress_monitor(){
 }
 
 WORKDIR="$(pwd)"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+SCRIPT_DIR="$_CONTAINER_DIR"
 PIPELINE_DIR="$SCRIPT_DIR"
 if [ -n "$SNAKEDIR" ]; then
   [ -d "$SNAKEDIR" ] || { echo "[Go_shortWGS] SNAKEDIR not found: $SNAKEDIR"; exit 1; }
@@ -284,16 +293,10 @@ if [ ! -f "$PIPELINE_DIR/$SNAKEFILE_NAME" ]; then
 fi
 echo "[Go_shortWGS] Using Snakefile: $PIPELINE_DIR/$SNAKEFILE_NAME"
 
-if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
-  echo "[Go_shortWGS][FATAL] Docker image not found locally: $IMAGE"
-  echo "[Go_shortWGS] Build example:"
-  echo "  cd \"$SCRIPT_DIR\" && docker build --network=host -t shortwgs ."
-  echo "[Go_shortWGS] Or specify an existing image with -m <image[:tag]>."
-  exit 1
-fi
+container_require_image "$IMAGE" || exit 1
 
 run(){
-  docker run --rm \
+  container_run --rm \
     -u "$(id -u):$(id -g)" \
     -v "$WORKDIR":/work \
     -v "$PIPELINE_DIR":/pipeline:ro \

@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Resolve the launcher path so invocation through a symlink also finds common/.
+_CONTAINER_SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")"
+_CONTAINER_DIR="$(cd "$(dirname "$_CONTAINER_SELF")" && pwd -P)"
+_CONTAINER_HELPER="$_CONTAINER_DIR/../common/container.sh"
+[ -f "$_CONTAINER_HELPER" ] || _CONTAINER_HELPER="$_CONTAINER_DIR/common/container.sh"
+source "$_CONTAINER_HELPER"
+set -- ${CONTAINER_ARGS[@]+"${CONTAINER_ARGS[@]}"}
+
+
 usage(){
-  echo "Usage: $0 -i FASTQ_DIR -o OUTPUT_DIR -d HOST_BT2_INDEX_PREFIX [-s MAGS_DIR] [-c CORES] [-j JOBS] [-m IMAGE] [-n] [-K]"
+  echo "Usage: $0 [--container docker|apptainer] [--container-image IMAGE_OR_SIF] -i FASTQ_DIR -o OUTPUT_DIR -d HOST_BT2_INDEX_PREFIX [-s MAGS_DIR] [-c CORES] [-j JOBS] [-m IMAGE] [-n] [-K]"
   exit 1
 }
 
@@ -96,7 +105,7 @@ if ! bt2_prefix_exists "$HOST_DB_ABS"; then
   exit 1
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+SCRIPT_DIR="$_CONTAINER_DIR"
 PIPELINE_DIR="$SCRIPT_DIR"
 if [ -n "$MAGS_DIR" ]; then
   [ -d "$MAGS_DIR" ] || { echo "[Go_MAGs_QC] MAGS_DIR not found: $MAGS_DIR"; exit 1; }
@@ -112,17 +121,12 @@ if [ ! -f "$PIPELINE_DIR/$SNAKEFILE_NAME" ]; then
   exit 1
 fi
 
-if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
-  echo "[Go_MAGs_QC][FATAL] Docker image not found locally: $IMAGE"
-  echo "[Go_MAGs_QC] Build example:"
-  echo "  cd \"$SCRIPT_DIR/docker/MAGs\" && docker build -f Dockerfile.qc -t mags-qc:1.0 ."
-  exit 1
-fi
+container_require_image "$IMAGE" || exit 1
 
 WORKDIR="$(pwd)"
 
 run(){
-  docker run --rm \
+  container_run --rm \
     -u "$(id -u):$(id -g)" \
     -v "$WORKDIR":/work \
     -v "$PIPELINE_DIR":/pipeline:ro \

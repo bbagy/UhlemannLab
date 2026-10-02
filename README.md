@@ -5,7 +5,7 @@
 ![Status](https://img.shields.io/badge/Status-Active-2e7d32)
 
 Containerized sequencing pipelines for routine analysis in the Uhlemann Lab.
-Each pipeline is self-contained with its own `Dockerfile`, workflow, wrapper script, and README.
+Container launchers share `common/container.sh`; each pipeline keeps its own Dockerfile and workflow.
 
 ---
 
@@ -33,6 +33,57 @@ In testing:
 - Open full documentation here:
   - [Documentation Portal](https://bbagy.github.io/UhlemannLab/)
   - (Read the Docs URL will be added after first successful RTD build)
+
+---
+
+## Docker / Apptainer selection
+
+For Docker image locations, workstation export, HPC transfer, and SIF conversion,
+see the [step-by-step image guide](common/README.md). The reusable helper is
+`common/Go_container_image.sh` (`export` on the workstation, `build` on the HPC).
+
+Docker remains the default. The nine container launchers (longWGS, shortWGS,
+KBracken, Humann, RNake, PFsnake, and the three MAGs stages) accept:
+
+```bash
+# Workstation: existing commands still work.
+./Go_shortWGS.sh --container docker [existing options]
+
+# HPC: use a prepared SIF built from the same Docker image.
+./Go_shortWGS.sh --container apptainer \
+  --container-image /shared/containers/shortwgs.sif [existing options]
+```
+
+`--container-image` overrides the image selection; existing `-m` image options
+also accept a SIF path for Apptainer. longWGS uses `--container-image` because
+it has no `-m` image option. Both `--container=value` and separate-value forms
+are supported. No automatic runtime switching or image downloading occurs.
+
+Prepare the SIF once on a machine where pulling/building is permitted:
+
+```bash
+# Replace registry/image:tag with the published version of your Docker image.
+apptainer pull shortwgs.sif docker://registry/image:tag
+```
+
+Local Docker images must first be published or exported for conversion; an
+HPC cannot access the workstation's Docker daemon or image cache. Use the
+same image version and CPU architecture as the target HPC. Dockerfiles and
+Snakefiles are shared; Apptainer translates mounts to bind mounts, runs as the
+calling user, and receives explicit environment variables with `--cleanenv`.
+
+When copying launchers manually, copy `common/container.sh` too. In the source
+tree it is at `../common/container.sh` relative to each launcher; for flattened
+`heekuk_path` installations, place it at `heekuk_path/common/container.sh`.
+The workstation update helper must transfer this shared file before launchers.
+
+This adds container execution, not Slurm job distribution. Run inside an HPC
+allocation with appropriate cores/memory; rule-level scheduling requires a
+separate Snakemake executor/profile setup.
+
+daDake2 and file merge/rename utilities do not currently use containers and
+keep their existing host execution. TnSeq_ONT has a Python entry point rather
+than a shell launcher; its README includes the direct Apptainer command.
 
 ---
 

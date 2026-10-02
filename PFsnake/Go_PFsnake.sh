@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Resolve the launcher path so invocation through a symlink also finds common/.
+_CONTAINER_SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")"
+_CONTAINER_DIR="$(cd "$(dirname "$_CONTAINER_SELF")" && pwd -P)"
+_CONTAINER_HELPER="$_CONTAINER_DIR/../common/container.sh"
+[ -f "$_CONTAINER_HELPER" ] || _CONTAINER_HELPER="$_CONTAINER_DIR/common/container.sh"
+source "$_CONTAINER_HELPER"
+set -- ${CONTAINER_ARGS[@]+"${CONTAINER_ARGS[@]}"}
+
+
 usage(){
-  echo "Usage: $0 -i FASTQ_DIR -o OUTPUT -d REF_FASTA [-s SNAKEDIR] [-g GFF] [-c CORES] [-t THREADS] [-p 1|2] [-m IMAGE] [-n] [-K] [-P 0|1]"
+  echo "Usage: $0 [--container docker|apptainer] [--container-image IMAGE_OR_SIF] -i FASTQ_DIR -o OUTPUT -d REF_FASTA [-s SNAKEDIR] [-g GFF] [-c CORES] [-t THREADS] [-p 1|2] [-m IMAGE] [-n] [-K] [-P 0|1]"
   exit 1
 }
 
@@ -275,7 +284,7 @@ stop_progress_monitor(){
 }
 
 WORKDIR="$(pwd)"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+SCRIPT_DIR="$_CONTAINER_DIR"
 PIPELINE_DIR="$SCRIPT_DIR"
 if [ -n "$SNAKEDIR" ]; then
   [ -d "$SNAKEDIR" ] || { echo "[Go_PFsnake] SNAKEDIR not found: $SNAKEDIR"; exit 1; }
@@ -289,7 +298,7 @@ fi
 echo "[Go_PFsnake] Using Snakefile: $PIPELINE_DIR/$SNAKEFILE_NAME"
 
 run(){
-  docker run --rm \
+  container_run --rm \
     -u "$(id -u):$(id -g)" \
     -v "$WORKDIR":/work \
     -v "$PIPELINE_DIR":/pipeline:ro \
@@ -325,7 +334,7 @@ if [ -n "$GFF" ]; then
   GFF_ABS="$(abs_path "$GFF")" || { echo "[Go_PFsnake] GFF not found: $GFF"; exit 1; }
   BASE_ARGS+=(gff=/work/.pfsnake.gff)
   run_with_gff(){
-    docker run --rm \
+    container_run --rm \
       -u "$(id -u):$(id -g)" \
       -v "$WORKDIR":/work \
       -v "$PIPELINE_DIR":/pipeline:ro \

@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Resolve the launcher path so invocation through a symlink also finds common/.
+_CONTAINER_SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")"
+_CONTAINER_DIR="$(cd "$(dirname "$_CONTAINER_SELF")" && pwd -P)"
+_CONTAINER_HELPER="$_CONTAINER_DIR/../common/container.sh"
+[ -f "$_CONTAINER_HELPER" ] || _CONTAINER_HELPER="$_CONTAINER_DIR/common/container.sh"
+source "$_CONTAINER_HELPER"
+set -- ${CONTAINER_ARGS[@]+"${CONTAINER_ARGS[@]}"}
+
+
 usage(){
-  echo "Usage: $0 -i QC_HOST_FILTERED_FASTQ_DIR -o OUTPUT_DIR [-d CHECKM_DATA_DIR] [-s MAGS_DIR] [-c CORES] [-j JOBS] [-t MEGAHIT_THREADS] [-M MEGAHIT_MEMORY] [-b BINNING_TOOLS] [-m IMAGE] [-n] [-K]"
+  echo "Usage: $0 [--container docker|apptainer] [--container-image IMAGE_OR_SIF] -i QC_HOST_FILTERED_FASTQ_DIR -o OUTPUT_DIR [-d CHECKM_DATA_DIR] [-s MAGS_DIR] [-c CORES] [-j JOBS] [-t MEGAHIT_THREADS] [-M MEGAHIT_MEMORY] [-b BINNING_TOOLS] [-m IMAGE] [-n] [-K]"
   exit 1
 }
 
@@ -70,14 +79,9 @@ for r1 in "$FASTQ_DIR_ABS"/*_R1_nohuman.fastq.gz; do
   fi
 done
 
-if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
-  echo "[Go_MAGs_Assembly][FATAL] Docker image not found locally: $IMAGE"
-  echo "[Go_MAGs_Assembly] Build example:"
-  echo "  cd \"$(cd "$(dirname "$0")" && pwd -P)/docker/MAGs\" && docker build -f Dockerfile.assembly -t mags-assembly:1.0 ."
-  exit 1
-fi
+container_require_image "$IMAGE" || exit 1
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+SCRIPT_DIR="$_CONTAINER_DIR"
 PIPELINE_DIR="$SCRIPT_DIR"
 if [ -n "$MAGS_DIR" ]; then
   [ -d "$MAGS_DIR" ] || { echo "[Go_MAGs_Assembly] MAGS_DIR not found: $MAGS_DIR"; exit 1; }
@@ -100,8 +104,8 @@ fi
 WORKDIR="$(pwd)"
 
 run(){
-  local -a docker_args=(
-    docker run --rm
+  local -a container_args=(
+    container_run --rm
     -u "$(id -u):$(id -g)"
     -v "$WORKDIR":/work
     -v "$PIPELINE_DIR":/pipeline:ro
@@ -109,10 +113,10 @@ run(){
     -w /work
   )
   if [ -n "$CHECKM_DATA_DIR_ABS" ]; then
-    docker_args+=(-v "$CHECKM_DATA_DIR_ABS":/db/checkm_data:ro)
+    container_args+=(-v "$CHECKM_DATA_DIR_ABS":/db/checkm_data:ro)
   fi
-  docker_args+=("$IMAGE")
-  "${docker_args[@]}" "$@"
+  container_args+=("$IMAGE")
+  "${container_args[@]}" "$@"
 }
 
 BASE_ARGS=(
