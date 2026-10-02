@@ -34,6 +34,12 @@ In testing:
   - [Documentation Portal](https://bbagy.github.io/UhlemannLab/)
   - (Read the Docs URL will be added after first successful RTD build)
 
+The portal serves the static HTML in `docs/`. GitHub Pages must be configured
+with **Deploy from a branch → main → /docs**. The `docs/.nojekyll` file keeps
+the existing HTML/CSS unchanged during publication. If the GitHub repository
+is recreated, restore this Pages setting; pushing the Git history does not
+restore repository settings.
+
 ---
 
 ## Docker / Apptainer selection
